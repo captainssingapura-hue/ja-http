@@ -1,8 +1,9 @@
-package hue.captains.singapura.tao.http.vertx.demo.pubsub;
+package hue.captains.singapura.tao.http.vertx.ws;
 
 import hue.captains.singapura.tao.http.actor.Actor;
 import hue.captains.singapura.tao.http.actor.ActorAction;
 import hue.captains.singapura.tao.http.actor.ActorRef;
+import hue.captains.singapura.tao.http.actor.ActorSystem;
 import hue.captains.singapura.tao.http.actor.Message;
 import hue.captains.singapura.tao.http.actor.frontier.FrontierActor;
 import io.vertx.core.Vertx;
@@ -16,14 +17,14 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 /**
- * An actor system that runs on the Vert.x event loop.
+ * An {@link ActorSystem} that dispatches on the Vert.x event loop.
  * <p>
  * When messages are injected (via {@link #inject} or frontier actor listeners),
- * mailbox processing is scheduled on the Vert.x event loop via {@code vertx.runOnContext()}.
+ * mailbox processing is scheduled via {@code vertx.runOnContext()}.
  * This ensures all actor processing is single-threaded and non-blocking,
  * cooperating with the Vert.x event loop rather than fighting it.
  */
-public class VertxActorSystem {
+public class VertxActorSystem implements ActorSystem {
 
     private final Vertx vertx;
     private final Map<ActorRef, Actor<?, ?>> actors = new LinkedHashMap<>();
@@ -52,18 +53,17 @@ public class VertxActorSystem {
         this.vertx = vertx;
     }
 
+    @Override
     public ActorRef allocateRef(String name) {
         return new Ref(name);
     }
 
-    public int actorCount() {
-        return actors.size();
-    }
-
+    @Override
     public void register(ActorRef ref, Actor<?, ?> actor) {
         actors.put(ref, actor);
     }
 
+    @Override
     public <R extends Message._Receive, S extends Message._Send, A extends FrontierActor<R, S>>
     A registerFrontier(ActorRef ref, FrontierActor._Constructor<R, S, A> constructor) {
         Consumer<ActorAction.SendMessage<S>> consumer = sendMsg -> {
@@ -75,13 +75,14 @@ public class VertxActorSystem {
         return actor;
     }
 
-    /**
-     * Inject a message from outside the actor system (e.g., from a WebSocket handler).
-     * Schedules mailbox processing on the Vert.x event loop.
-     */
+    @Override
     public void inject(ActorRef target, Message._Receive message) {
         mailbox.add(new Envelope(target, message));
         scheduleProcessing();
+    }
+
+    public int actorCount() {
+        return actors.size();
     }
 
     private void scheduleProcessing() {
