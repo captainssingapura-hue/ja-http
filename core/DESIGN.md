@@ -171,14 +171,22 @@ Raw HTTP Request
 ```
 ja-http
 ├── core                  — interfaces only, no server dependency
+├── actor                 — actor abstractions (Actor, Message, ActorRef, ActorSystem)
+├── actor-pub-sub         — pub-sub primitives (TopicActor, TopicManager, TopicPayload)
+├── rps-game              — RPS game actors (LobbyActor, RpsGameActor) — no hosting deps
 ├── action-demo-common    — REQ-generic demo actions + param records (depends on core)
-├── vertx-host            — Vert.x hosting implementation (async)
-├── vertx-host-demo       — Vert.x marshallers + registry + main
+├── vertx-host            — Vert.x HTTP action hosting (async)
+├── vertx-host-ws         — Vert.x WebSocket pub-sub bridge (generic, no app knowledge)
+├── vertx-host-combined   — combined HTTP + WebSocket on one port (VertxCombinedHost)
+├── vertx-host-demo       — Vert.x demo: marshallers, registry, RPS bot client
 ├── jetty-host            — Jetty 12 hosting implementation (sync via .join())
-└── jetty-host-demo       — Jetty marshallers + registry + main
+├── jetty-host-demo       — Jetty marshallers + registry + main
+└── actor-demo            — SingleThreadActorSystem + actor demos
 ```
 
 The `action-demo-common` module demonstrates the key architectural property: **the same action classes (`EchoGetAction<REQ>`, `EchoPostAction<REQ>`, `PongGetAction<REQ>`) are shared across both hosting implementations**. Only the marshallers and registry differ.
+
+The actor and pub-sub modules enable a second architectural property: **application actors (e.g. `rps-game`) communicate through generic pub-sub topics and have no hosting dependencies**. The same game actors work whether hosted via Vert.x WebSocket, tested with `SingleThreadActorSystem`, or integrated into a different project (e.g. japjs).
 
 ## Extension Points
 

@@ -18,6 +18,9 @@
         <module>jetty-host</module>
         <module>jetty-host-demo</module>
         <module>actor-pub-sub</module>
+        <module>rps-game</module>
+        <module>vertx-host-ws</module>
+        <module>vertx-host-combined</module>
     </modules>
 
     <properties>

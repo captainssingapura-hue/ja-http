@@ -3,6 +3,7 @@ package hue.captains.singapura.tao.http.actor.demo;
 import hue.captains.singapura.tao.http.actor.Actor;
 import hue.captains.singapura.tao.http.actor.ActorAction;
 import hue.captains.singapura.tao.http.actor.ActorRef;
+import hue.captains.singapura.tao.http.actor.ActorSystem;
 import hue.captains.singapura.tao.http.actor.Message;
 import hue.captains.singapura.tao.http.actor.frontier.FrontierActor;
 
@@ -14,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
-public class SingleThreadActorSystem {
+public class SingleThreadActorSystem implements ActorSystem {
 
     private final Map<ActorRef, Actor<?, ?>> actors = new LinkedHashMap<>();
     private final Deque<Envelope> mailbox = new ArrayDeque<>();
