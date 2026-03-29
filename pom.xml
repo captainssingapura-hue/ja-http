@@ -17,6 +17,7 @@
         <module>vertx-host-demo</module>
         <module>jetty-host</module>
         <module>jetty-host-demo</module>
+        <module>actor-pub-sub</module>
     </modules>
 
     <properties>
@@ -26,6 +27,18 @@
         <vertx.version>4.5.11</vertx.version>
         <jackson.version>2.17.2</jackson.version>
         <jetty.version>12.0.16</jetty.version>
+        <junit.version>5.11.3</junit.version>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>${junit.version}</version>
+                <scope>test</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
 </project>

@@ -1,10 +1,11 @@
-package hue.captains.singapura.tao.http.actor.demo;
+package hue.captains.singapura.tao.http.vertx.demo.pubsub;
 
 import hue.captains.singapura.tao.http.actor.Actor;
 import hue.captains.singapura.tao.http.actor.ActorAction;
 import hue.captains.singapura.tao.http.actor.ActorRef;
 import hue.captains.singapura.tao.http.actor.Message;
 import hue.captains.singapura.tao.http.actor.frontier.FrontierActor;
+import io.vertx.core.Vertx;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -14,10 +15,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
-public class SingleThreadActorSystem {
+/**
+ * An actor system that runs on the Vert.x event loop.
+ * <p>
+ * When messages are injected (via {@link #inject} or frontier actor listeners),
+ * mailbox processing is scheduled on the Vert.x event loop via {@code vertx.runOnContext()}.
+ * This ensures all actor processing is single-threaded and non-blocking,
+ * cooperating with the Vert.x event loop rather than fighting it.
+ */
+public class VertxActorSystem {
 
+    private final Vertx vertx;
     private final Map<ActorRef, Actor<?, ?>> actors = new LinkedHashMap<>();
     private final Deque<Envelope> mailbox = new ArrayDeque<>();
+    private boolean processingScheduled = false;
 
     private record Envelope(ActorRef target, Message._Receive message) {}
 
@@ -37,6 +48,10 @@ public class SingleThreadActorSystem {
         }
     }
 
+    public VertxActorSystem(Vertx vertx) {
+        this.vertx = vertx;
+    }
+
     public ActorRef allocateRef(String name) {
         return new Ref(name);
     }
@@ -51,19 +66,35 @@ public class SingleThreadActorSystem {
 
     public <R extends Message._Receive, S extends Message._Send, A extends FrontierActor<R, S>>
     A registerFrontier(ActorRef ref, FrontierActor._Constructor<R, S, A> constructor) {
-        Consumer<ActorAction.SendMessage<S>> consumer = sendMsg ->
-                mailbox.add(new Envelope(sendMsg.to(), (Message._Receive) sendMsg.message()));
+        Consumer<ActorAction.SendMessage<S>> consumer = sendMsg -> {
+            mailbox.add(new Envelope(sendMsg.to(), (Message._Receive) sendMsg.message()));
+            scheduleProcessing();
+        };
         A actor = constructor.construct(consumer);
         actors.put(ref, actor);
         return actor;
     }
 
-    /** Inject a message into the mailbox from outside the actor system (simulating external events). */
+    /**
+     * Inject a message from outside the actor system (e.g., from a WebSocket handler).
+     * Schedules mailbox processing on the Vert.x event loop.
+     */
     public void inject(ActorRef target, Message._Receive message) {
         mailbox.add(new Envelope(target, message));
+        scheduleProcessing();
     }
 
-    public void processMailbox() {
+    private void scheduleProcessing() {
+        if (!processingScheduled) {
+            processingScheduled = true;
+            vertx.runOnContext(v -> {
+                processingScheduled = false;
+                processMailbox();
+            });
+        }
+    }
+
+    private void processMailbox() {
         while (!mailbox.isEmpty()) {
             var byTarget = new LinkedHashMap<ActorRef, List<Message._Receive>>();
             while (!mailbox.isEmpty()) {
@@ -75,7 +106,7 @@ public class SingleThreadActorSystem {
                 var ref = entry.getKey();
                 var actor = actors.get(ref);
                 if (actor == null) {
-                    continue; // actor was terminated, drop its messages
+                    continue;
                 }
 
                 @SuppressWarnings("unchecked")
@@ -92,24 +123,12 @@ public class SingleThreadActorSystem {
     private void handleAction(ActorRef sender, ActorAction action) {
         switch (action) {
             case ActorAction.SendMessage<?> send ->
-                    mailbox.add(new Envelope(send.to(), (Message._Receive) send.message()));
-            case ActorAction.SpawnSubActor<?, ?, ?> spawn -> {
-                if (spawn.actorType() instanceof ActorFactory<?, ?> factory) {
-                    var ref = allocateRef("spawned");
-                    @SuppressWarnings("unchecked")
-                    var typedFactory = (ActorFactory<Message._Receive, Message._Send>) factory;
-                    var actor = typedFactory.create(ref);
-                    actors.put(ref, actor);
-                    for (var msg : spawn.initialMessages()) {
-                        mailbox.add(new Envelope(ref, (Message._Receive) msg));
-                    }
-                } else {
-                    throw new UnsupportedOperationException(
-                            "SpawnSubActor requires actorType to implement ActorFactory");
-                }
-            }
+                mailbox.add(new Envelope(send.to(), (Message._Receive) send.message()));
+            case ActorAction.SpawnSubActor<?, ?, ?> spawn ->
+                throw new UnsupportedOperationException(
+                    "SpawnSubActor not yet supported in VertxActorSystem");
             case ActorAction.SelfTerminate ignored ->
-                    actors.remove(sender);
+                actors.remove(sender);
         }
     }
 }
