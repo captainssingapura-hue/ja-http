@@ -3,6 +3,7 @@ package hue.captains.singapura.tao.http.vertx.handler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import hue.captains.singapura.tao.http.action.Param;
 import hue.captains.singapura.tao.http.action.PostAction;
+import hue.captains.singapura.tao.http.action.TypedContent;
 import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
 
@@ -26,9 +27,15 @@ public class PostActionHandler<PP extends Param._Post, HP extends Param._Header,
             action.execute(postParams, headerParams)
                     .thenAccept(result -> {
                         try {
-                            ctx.response()
-                                    .putHeader("Content-Type", "application/json")
-                                    .end(objectMapper.writeValueAsString(result));
+                            if (result instanceof TypedContent tc) {
+                                ctx.response()
+                                        .putHeader("Content-Type", tc.contentType())
+                                        .end(tc.body());
+                            } else {
+                                ctx.response()
+                                        .putHeader("Content-Type", "application/json")
+                                        .end(objectMapper.writeValueAsString(result));
+                            }
                         } catch (Exception e) {
                             ErrorHandler.handle(ctx, e, objectMapper);
                         }

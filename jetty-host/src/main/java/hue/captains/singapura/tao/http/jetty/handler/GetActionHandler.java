@@ -3,6 +3,7 @@ package hue.captains.singapura.tao.http.jetty.handler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import hue.captains.singapura.tao.http.action.GetAction;
 import hue.captains.singapura.tao.http.action.Param;
+import hue.captains.singapura.tao.http.action.TypedContent;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Response;
 import org.eclipse.jetty.util.Callback;
@@ -26,10 +27,15 @@ public class GetActionHandler<QP extends Param._QueryString, HP extends Param._H
 
             R result = action.execute(queryParams, headerParams).join();
 
-            byte[] json = objectMapper.writeValueAsBytes(result);
             response.setStatus(200);
-            response.getHeaders().put("Content-Type", "application/json");
-            response.write(true, ByteBuffer.wrap(json), callback);
+            if (result instanceof TypedContent tc) {
+                response.getHeaders().put("Content-Type", tc.contentType());
+                response.write(true, ByteBuffer.wrap(tc.body().getBytes()), callback);
+            } else {
+                byte[] json = objectMapper.writeValueAsBytes(result);
+                response.getHeaders().put("Content-Type", "application/json");
+                response.write(true, ByteBuffer.wrap(json), callback);
+            }
         } catch (Exception e) {
             ErrorHandler.handle(response, callback, ErrorHandler.unwrap(e), objectMapper);
         }
