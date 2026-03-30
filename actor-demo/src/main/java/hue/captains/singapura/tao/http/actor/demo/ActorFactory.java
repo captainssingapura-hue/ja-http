@@ -1,7 +1,7 @@
 package hue.captains.singapura.tao.http.actor.demo;
 
 import hue.captains.singapura.tao.http.actor.Actor;
-import hue.captains.singapura.tao.http.actor.ActorRef;
+import hue.captains.singapura.tao.http.actor.ActorId;
 import hue.captains.singapura.tao.http.actor.Message;
 
 /**
@@ -11,5 +11,5 @@ import hue.captains.singapura.tao.http.actor.Message;
 public interface ActorFactory<R extends Message._Receive, S extends Message._Send>
         extends Actor._TypeRef<R, S> {
 
-    Actor<R, S> create(ActorRef self);
+    Actor<R, S> create(ActorId self);
 }

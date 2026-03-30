@@ -2,7 +2,7 @@ package hue.captains.singapura.tao.http.actor.demo.pubsub;
 
 import hue.captains.singapura.tao.http.actor.Actor;
 import hue.captains.singapura.tao.http.actor.ActorAction;
-import hue.captains.singapura.tao.http.actor.ActorRef;
+import hue.captains.singapura.tao.http.actor.ActorId;
 import hue.captains.singapura.tao.http.actor.Message;
 import hue.captains.singapura.tao.http.actor.pubsub.LeadMessage;
 import hue.captains.singapura.tao.http.actor.pubsub.TopicManagerMessage;
@@ -28,21 +28,21 @@ import java.util.Set;
  */
 public class DemoSessionActor implements Actor<Message._Receive, Message._Send> {
 
-    private final ActorRef selfRef;
+    private final ActorId selfId;
     private final String connectionId;
 
-    private ActorRef leadRef;
-    private ActorRef topicManagerRef;
+    private ActorId leadId;
+    private ActorId topicManagerId;
 
-    private final Map<String, ActorRef> knownTopics = new LinkedHashMap<>();
+    private final Map<String, ActorId> knownTopics = new LinkedHashMap<>();
     private final Set<String> activeSubscriptions = new LinkedHashSet<>();
 
-    public DemoSessionActor(ActorRef selfRef, String connectionId,
-                            ActorRef leadRef, ActorRef topicManagerRef) {
-        this.selfRef = selfRef;
+    public DemoSessionActor(ActorId selfId, String connectionId,
+                            ActorId leadId, ActorId topicManagerId) {
+        this.selfId = selfId;
         this.connectionId = connectionId;
-        this.leadRef = leadRef;
-        this.topicManagerRef = topicManagerRef;
+        this.leadId = leadId;
+        this.topicManagerId = topicManagerId;
     }
 
     @Override
@@ -58,11 +58,11 @@ public class DemoSessionActor implements Actor<Message._Receive, Message._Send> 
                 }
 
                 case DemoCommand.Subscribe sub -> {
-                    var topicRef = knownTopics.get(sub.topicName());
-                    if (topicRef != null) {
+                    var topicId = knownTopics.get(sub.topicName());
+                    if (topicId != null) {
                         activeSubscriptions.add(sub.topicName());
-                        actions.add(new ActorAction.SendMessage<>(topicRef,
-                            new TopicMessage.Subscribe<>(selfRef)));
+                        actions.add(new ActorAction.SendMessage<>(topicId,
+                            new TopicMessage.Subscribe<>(selfId)));
                         System.out.printf("  [Session %s] Subscribed to '%s'%n",
                             connectionId, sub.topicName());
                     } else {
@@ -72,19 +72,19 @@ public class DemoSessionActor implements Actor<Message._Receive, Message._Send> 
                 }
 
                 case DemoCommand.Unsubscribe unsub -> {
-                    var topicRef = knownTopics.get(unsub.topicName());
-                    if (topicRef != null && activeSubscriptions.remove(unsub.topicName())) {
-                        actions.add(new ActorAction.SendMessage<>(topicRef,
-                            new TopicMessage.Unsubscribe<>(selfRef)));
+                    var topicId = knownTopics.get(unsub.topicName());
+                    if (topicId != null && activeSubscriptions.remove(unsub.topicName())) {
+                        actions.add(new ActorAction.SendMessage<>(topicId,
+                            new TopicMessage.Unsubscribe<>(selfId)));
                         System.out.printf("  [Session %s] Unsubscribed from '%s'%n",
                             connectionId, unsub.topicName());
                     }
                 }
 
                 case DemoCommand.Publish pub -> {
-                    var topicRef = knownTopics.get(pub.topicName());
-                    if (topicRef != null) {
-                        actions.add(new ActorAction.SendMessage<>(topicRef,
+                    var topicId = knownTopics.get(pub.topicName());
+                    if (topicId != null) {
+                        actions.add(new ActorAction.SendMessage<>(topicId,
                             new TopicMessage.Publish<>(pub.payload())));
                         System.out.printf("  [Session %s] Published to '%s': %s%n",
                             connectionId, pub.topicName(), pub.payload());
@@ -92,23 +92,23 @@ public class DemoSessionActor implements Actor<Message._Receive, Message._Send> 
                 }
 
                 case DemoCommand.ListTopics ignored ->
-                    actions.add(new ActorAction.SendMessage<>(topicManagerRef,
-                        new TopicManagerMessage.QueryTopics(selfRef)));
+                    actions.add(new ActorAction.SendMessage<>(topicManagerId,
+                        new TopicManagerMessage.QueryTopics(selfId)));
 
                 case DemoCommand.Disconnect ignored -> {
                     System.out.printf("  [Session %s] Disconnecting, unsubscribing from %s%n",
                         connectionId, activeSubscriptions);
                     for (var topicName : activeSubscriptions) {
-                        var topicRef = knownTopics.get(topicName);
-                        if (topicRef != null) {
-                            actions.add(new ActorAction.SendMessage<>(topicRef,
-                                new TopicMessage.Unsubscribe<>(selfRef)));
+                        var topicId = knownTopics.get(topicName);
+                        if (topicId != null) {
+                            actions.add(new ActorAction.SendMessage<>(topicId,
+                                new TopicMessage.Unsubscribe<>(selfId)));
                         }
                     }
                     activeSubscriptions.clear();
-                    if (leadRef != null) {
-                        actions.add(new ActorAction.SendMessage<>(leadRef,
-                            new LeadMessage.SessionEnded(selfRef)));
+                    if (leadId != null) {
+                        actions.add(new ActorAction.SendMessage<>(leadId,
+                            new LeadMessage.SessionEnded(selfId)));
                     }
                     actions.add(new ActorAction.SelfTerminate());
                 }

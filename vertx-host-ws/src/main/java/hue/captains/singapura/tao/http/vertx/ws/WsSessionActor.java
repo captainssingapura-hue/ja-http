@@ -2,7 +2,7 @@ package hue.captains.singapura.tao.http.vertx.ws;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import hue.captains.singapura.tao.http.actor.ActorAction;
-import hue.captains.singapura.tao.http.actor.ActorRef;
+import hue.captains.singapura.tao.http.actor.ActorId;
 import hue.captains.singapura.tao.http.actor.Message;
 import hue.captains.singapura.tao.http.actor.frontier.FrontierActor;
 import hue.captains.singapura.tao.http.actor.pubsub.TopicManagerMessage;
@@ -46,24 +46,24 @@ public class WsSessionActor implements FrontierActor<Message._Receive, Message._
 
     private final Consumer<ActorAction.SendMessage<Message._Send>> listener;
     private final ServerWebSocket ws;
-    private final ActorRef selfRef;
+    private final ActorId selfId;
 
-    private ActorRef topicManagerRef;
-    private final Map<String, ActorRef> knownTopics = new LinkedHashMap<>();
+    private ActorId topicManagerId;
+    private final Map<String, ActorId> knownTopics = new LinkedHashMap<>();
     private final Set<String> activeSubscriptions = new LinkedHashSet<>();
 
     private WsSessionActor(Consumer<ActorAction.SendMessage<Message._Send>> listener,
-                           ServerWebSocket ws, ActorRef selfRef) {
+                           ServerWebSocket ws, ActorId selfId) {
         this.listener = listener;
         this.ws = ws;
-        this.selfRef = selfRef;
+        this.selfId = selfId;
 
         // Wire WebSocket events into the actor system
         ws.textMessageHandler(text ->
-            listener.accept(new ActorAction.SendMessage<>(selfRef, new WsMessage.IncomingFrame(text))));
+            listener.accept(new ActorAction.SendMessage<>(selfId, new WsMessage.IncomingFrame(text))));
 
         ws.closeHandler(v ->
-            listener.accept(new ActorAction.SendMessage<>(selfRef, new WsMessage.Disconnected())));
+            listener.accept(new ActorAction.SendMessage<>(selfId, new WsMessage.Disconnected())));
     }
 
     @Override
@@ -73,9 +73,9 @@ public class WsSessionActor implements FrontierActor<Message._Receive, Message._
         for (var msg : messages) {
             switch (msg) {
                 case WsMessage.Init init -> {
-                    this.topicManagerRef = init.topicManagerRef();
-                    actions.add(new ActorAction.SendMessage<>(topicManagerRef,
-                        new TopicManagerMessage.QueryTopics(selfRef)));
+                    this.topicManagerId = init.topicManagerId();
+                    actions.add(new ActorAction.SendMessage<>(topicManagerId,
+                        new TopicManagerMessage.QueryTopics(selfId)));
                 }
 
                 case TopicManagerMessage.TopicList topicList -> {
@@ -106,10 +106,10 @@ public class WsSessionActor implements FrontierActor<Message._Receive, Message._
 
                 case WsMessage.Disconnected ignored -> {
                     for (var topicName : activeSubscriptions) {
-                        var topicRef = knownTopics.get(topicName);
-                        if (topicRef != null) {
-                            actions.add(new ActorAction.SendMessage<>(topicRef,
-                                new TopicMessage.Unsubscribe<>(selfRef)));
+                        var topicId = knownTopics.get(topicName);
+                        if (topicId != null) {
+                            actions.add(new ActorAction.SendMessage<>(topicId,
+                                new TopicMessage.Unsubscribe<>(selfId)));
                         }
                     }
                     activeSubscriptions.clear();
@@ -137,16 +137,16 @@ public class WsSessionActor implements FrontierActor<Message._Receive, Message._
 
             switch (action) {
                 case "list" ->
-                    actions.add(new ActorAction.SendMessage<>(topicManagerRef,
-                        new TopicManagerMessage.QueryTopics(selfRef)));
+                    actions.add(new ActorAction.SendMessage<>(topicManagerId,
+                        new TopicManagerMessage.QueryTopics(selfId)));
 
                 case "subscribe" -> {
                     var topic = (String) json.get("topic");
-                    var topicRef = knownTopics.get(topic);
-                    if (topicRef != null) {
+                    var topicId = knownTopics.get(topic);
+                    if (topicId != null) {
                         activeSubscriptions.add(topic);
-                        actions.add(new ActorAction.SendMessage<>(topicRef,
-                            new TopicMessage.Subscribe<>(selfRef)));
+                        actions.add(new ActorAction.SendMessage<>(topicId,
+                            new TopicMessage.Subscribe<>(selfId)));
                         sendToClient(Map.of("type", "subscribed", "topic", topic));
                     } else {
                         sendToClient(Map.of("type", "error", "message", "Unknown topic: " + topic));
@@ -155,10 +155,10 @@ public class WsSessionActor implements FrontierActor<Message._Receive, Message._
 
                 case "unsubscribe" -> {
                     var topic = (String) json.get("topic");
-                    var topicRef = knownTopics.get(topic);
-                    if (topicRef != null && activeSubscriptions.remove(topic)) {
-                        actions.add(new ActorAction.SendMessage<>(topicRef,
-                            new TopicMessage.Unsubscribe<>(selfRef)));
+                    var topicId = knownTopics.get(topic);
+                    if (topicId != null && activeSubscriptions.remove(topic)) {
+                        actions.add(new ActorAction.SendMessage<>(topicId,
+                            new TopicMessage.Unsubscribe<>(selfId)));
                         sendToClient(Map.of("type", "unsubscribed", "topic", topic));
                     }
                 }
@@ -166,10 +166,10 @@ public class WsSessionActor implements FrontierActor<Message._Receive, Message._
                 case "publish" -> {
                     var topic = (String) json.get("topic");
                     var payload = json.get("payload");
-                    var topicRef = knownTopics.get(topic);
-                    if (topicRef != null) {
+                    var topicId = knownTopics.get(topic);
+                    if (topicId != null) {
                         var payloadStr = payload instanceof String s ? s : MAPPER.writeValueAsString(payload);
-                        actions.add(new ActorAction.SendMessage<>(topicRef,
+                        actions.add(new ActorAction.SendMessage<>(topicId,
                             new TopicMessage.Publish<>(new TopicPayload(topic, payloadStr))));
                     } else {
                         sendToClient(Map.of("type", "error", "message", "Unknown topic: " + topic));
@@ -194,7 +194,7 @@ public class WsSessionActor implements FrontierActor<Message._Receive, Message._
     }
 
     public static FrontierActor._Constructor<Message._Receive, Message._Send, WsSessionActor>
-    constructor(ServerWebSocket ws, ActorRef selfRef) {
-        return listener -> new WsSessionActor(listener, ws, selfRef);
+    constructor(ServerWebSocket ws, ActorId selfId) {
+        return listener -> new WsSessionActor(listener, ws, selfId);
     }
 }

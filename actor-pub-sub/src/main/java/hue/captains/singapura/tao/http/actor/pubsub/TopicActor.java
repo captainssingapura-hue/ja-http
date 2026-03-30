@@ -2,7 +2,7 @@ package hue.captains.singapura.tao.http.actor.pubsub;
 
 import hue.captains.singapura.tao.http.actor.Actor;
 import hue.captains.singapura.tao.http.actor.ActorAction;
-import hue.captains.singapura.tao.http.actor.ActorRef;
+import hue.captains.singapura.tao.http.actor.ActorId;
 import hue.captains.singapura.tao.http.actor.Message;
 
 import java.util.ArrayList;
@@ -18,7 +18,7 @@ import java.util.Set;
 public class TopicActor<M extends Message._Send>
         implements Actor<TopicMessage<M>, TopicMessage<M>> {
 
-    private final Set<ActorRef> subscribers = new LinkedHashSet<>();
+    private final Set<ActorId> subscribers = new LinkedHashSet<>();
 
     @Override
     public List<ActorAction> receive(List<TopicMessage<M>> messages) {

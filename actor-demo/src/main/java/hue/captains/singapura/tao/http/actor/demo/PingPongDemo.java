@@ -5,11 +5,11 @@ public class PingPongDemo {
     public static void main(String[] args) throws InterruptedException {
         var system = new SingleThreadActorSystem();
 
-        var pingRef = system.allocateRef("ping");
-        var pongRef = system.allocateRef("pong");
+        var pingId = system.allocateId("ping");
+        var pongId = system.allocateId("pong");
 
-        system.register(pongRef, new PongActor(pongRef));
-        var pingActor = system.registerFrontier(pingRef, PingActor.constructor(pongRef, pingRef));
+        system.register(pongId, new PongActor(pongId));
+        var pingActor = system.registerFrontier(pingId, PingActor.constructor(pongId, pingId));
 
         System.out.println("=== Ping-Pong Demo (10 rounds, 1 per second) ===\n");
 

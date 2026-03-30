@@ -2,7 +2,7 @@ package hue.captains.singapura.tao.http.vertx;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import hue.captains.singapura.tao.http.action.ActionRegistry;
-import hue.captains.singapura.tao.http.actor.ActorRef;
+import hue.captains.singapura.tao.http.actor.ActorId;
 import hue.captains.singapura.tao.http.actor.ActorSystem;
 import hue.captains.singapura.tao.http.vertx.handler.GetActionHandler;
 import hue.captains.singapura.tao.http.vertx.handler.PostActionHandler;
@@ -28,11 +28,11 @@ import io.vertx.ext.web.handler.BodyHandler;
  *   var actorSystem = host.actorSystem();
  *
  *   // Wire up pub-sub: topic manager, topics, application actors...
- *   var topicManagerRef = actorSystem.allocateRef("topicManager");
- *   actorSystem.register(topicManagerRef, new TopicManagerActor());
+ *   var topicManagerId = actorSystem.allocateId("topicManager");
+ *   actorSystem.register(topicManagerId, new TopicManagerActor());
  *   // ...
  *
- *   host.start("/pubsub", topicManagerRef);
+ *   host.start("/pubsub", topicManagerId);
  * </pre>
  */
 public class VertxCombinedHost {
@@ -67,12 +67,12 @@ public class VertxCombinedHost {
     /**
      * Starts the combined server with HTTP action routes and a WebSocket pub-sub endpoint.
      *
-     * @param wsPath          the WebSocket upgrade path (e.g. {@code "/pubsub"})
-     * @param topicManagerRef the topic manager actor ref (must already be registered in the actor system)
+     * @param wsPath         the WebSocket upgrade path (e.g. {@code "/pubsub"})
+     * @param topicManagerId the topic manager actor id (must already be registered in the actor system)
      * @return a future that completes when the server is listening
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public Future<HttpServer> start(String wsPath, ActorRef topicManagerRef) {
+    public Future<HttpServer> start(String wsPath, ActorId topicManagerId) {
         Router router = Router.router(vertx);
         router.route().handler(BodyHandler.create());
 
@@ -88,9 +88,9 @@ public class VertxCombinedHost {
         }
 
         // --- WebSocket pub-sub ---
-        var leadRef = actorSystem.allocateRef("ws-lead");
-        var leadActor = actorSystem.registerFrontier(leadRef,
-                WsLeadActor.constructor(actorSystem, topicManagerRef));
+        var leadId = actorSystem.allocateId("ws-lead");
+        var leadActor = actorSystem.registerFrontier(leadId,
+                WsLeadActor.constructor(actorSystem, topicManagerId));
 
         return vertx.createHttpServer()
                 .webSocketHandler(ws -> {

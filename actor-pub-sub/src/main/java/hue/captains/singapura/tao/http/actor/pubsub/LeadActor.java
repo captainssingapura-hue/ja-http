@@ -2,7 +2,7 @@ package hue.captains.singapura.tao.http.actor.pubsub;
 
 import hue.captains.singapura.tao.http.actor.Actor;
 import hue.captains.singapura.tao.http.actor.ActorAction;
-import hue.captains.singapura.tao.http.actor.ActorRef;
+import hue.captains.singapura.tao.http.actor.ActorId;
 import hue.captains.singapura.tao.http.actor.Message;
 
 import java.util.ArrayList;
@@ -24,14 +24,14 @@ import java.util.Set;
 public class LeadActor<F extends Actor._TypeRef<SessionMessage, SessionMessage>>
         implements Actor<LeadMessage, LeadMessage> {
 
-    private final ActorRef selfRef;
-    private final ActorRef topicManagerRef;
+    private final ActorId selfId;
+    private final ActorId topicManagerId;
     private final F sessionFactory;
-    private final Set<ActorRef> activeSessions = new LinkedHashSet<>();
+    private final Set<ActorId> activeSessions = new LinkedHashSet<>();
 
-    public LeadActor(ActorRef selfRef, ActorRef topicManagerRef, F sessionFactory) {
-        this.selfRef = selfRef;
-        this.topicManagerRef = topicManagerRef;
+    public LeadActor(ActorId selfId, ActorId topicManagerId, F sessionFactory) {
+        this.selfId = selfId;
+        this.topicManagerId = topicManagerId;
         this.sessionFactory = sessionFactory;
     }
 
@@ -46,11 +46,11 @@ public class LeadActor<F extends Actor._TypeRef<SessionMessage, SessionMessage>>
                     actions.add(new ActorAction.SpawnSubActor<>(
                         sessionFactory,
                         List.of(new SessionMessage.Init(
-                            conn.connectionId(), selfRef, topicManagerRef))));
+                            conn.connectionId(), selfId, topicManagerId))));
                 }
 
                 case LeadMessage.SessionEnded ended ->
-                    activeSessions.remove(ended.sessionRef());
+                    activeSessions.remove(ended.sessionId());
             }
         }
 

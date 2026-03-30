@@ -28,32 +28,32 @@ public class CombinedHostDemo {
         var actorSystem = host.actorSystem();
 
         // --- Topic Manager ---
-        var topicManagerRef = actorSystem.allocateRef("topicManager");
-        actorSystem.register(topicManagerRef, new TopicManagerActor());
+        var topicManagerId = actorSystem.allocateId("topicManager");
+        actorSystem.register(topicManagerId, new TopicManagerActor());
 
         // --- Topics ---
-        var pricesRef = actorSystem.allocateRef("topic:prices");
-        actorSystem.register(pricesRef, new TopicActor<TopicPayload>());
-        actorSystem.inject(topicManagerRef,
-            new TopicManagerMessage.RegisterTopic("prices", pricesRef));
+        var pricesId = actorSystem.allocateId("topic:prices");
+        actorSystem.register(pricesId, new TopicActor<TopicPayload>());
+        actorSystem.inject(topicManagerId,
+            new TopicManagerMessage.RegisterTopic("prices", pricesId));
 
-        var newsRef = actorSystem.allocateRef("topic:news");
-        actorSystem.register(newsRef, new TopicActor<TopicPayload>());
-        actorSystem.inject(topicManagerRef,
-            new TopicManagerMessage.RegisterTopic("news", newsRef));
+        var newsId = actorSystem.allocateId("topic:news");
+        actorSystem.register(newsId, new TopicActor<TopicPayload>());
+        actorSystem.inject(topicManagerId,
+            new TopicManagerMessage.RegisterTopic("news", newsId));
 
         // --- RPS lobby ---
-        var lobbyTopicRef = actorSystem.allocateRef("topic:lobby");
-        actorSystem.register(lobbyTopicRef, new TopicActor<TopicPayload>());
-        actorSystem.inject(topicManagerRef,
-            new TopicManagerMessage.RegisterTopic("lobby", lobbyTopicRef));
+        var lobbyTopicId = actorSystem.allocateId("topic:lobby");
+        actorSystem.register(lobbyTopicId, new TopicActor<TopicPayload>());
+        actorSystem.inject(topicManagerId,
+            new TopicManagerMessage.RegisterTopic("lobby", lobbyTopicId));
 
-        var lobbyRef = actorSystem.allocateRef("lobby");
-        actorSystem.register(lobbyRef, new LobbyActor(actorSystem, topicManagerRef, lobbyTopicRef));
-        actorSystem.inject(lobbyTopicRef, new TopicMessage.Subscribe<>(lobbyRef));
+        var lobbyId = actorSystem.allocateId("lobby");
+        actorSystem.register(lobbyId, new LobbyActor(actorSystem, topicManagerId, lobbyTopicId));
+        actorSystem.inject(lobbyTopicId, new TopicMessage.Subscribe<>(lobbyId));
 
         // --- Start ---
-        host.start("/pubsub", topicManagerRef)
+        host.start("/pubsub", topicManagerId)
             .onSuccess(server -> {
                 System.out.println("Combined server listening on port " + server.actualPort());
                 System.out.println();
