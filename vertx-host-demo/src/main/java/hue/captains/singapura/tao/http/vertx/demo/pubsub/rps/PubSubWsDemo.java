@@ -31,35 +31,35 @@ public class PubSubWsDemo {
         var actorSystem = new VertxActorSystem(vertx);
 
         // --- Topic Manager ---
-        var topicManagerRef = actorSystem.allocateRef("topicManager");
-        actorSystem.register(topicManagerRef, new TopicManagerActor());
+        var topicManagerId = actorSystem.allocateId("topicManager");
+        actorSystem.register(topicManagerId, new TopicManagerActor());
 
         // --- Pre-create topics ---
-        var pricesRef = actorSystem.allocateRef("topic:prices");
-        actorSystem.register(pricesRef, new TopicActor<TopicPayload>());
-        actorSystem.inject(topicManagerRef,
-            new TopicManagerMessage.RegisterTopic("prices", pricesRef));
+        var pricesId = actorSystem.allocateId("topic:prices");
+        actorSystem.register(pricesId, new TopicActor<TopicPayload>());
+        actorSystem.inject(topicManagerId,
+            new TopicManagerMessage.RegisterTopic("prices", pricesId));
 
-        var newsRef = actorSystem.allocateRef("topic:news");
-        actorSystem.register(newsRef, new TopicActor<TopicPayload>());
-        actorSystem.inject(topicManagerRef,
-            new TopicManagerMessage.RegisterTopic("news", newsRef));
+        var newsId = actorSystem.allocateId("topic:news");
+        actorSystem.register(newsId, new TopicActor<TopicPayload>());
+        actorSystem.inject(topicManagerId,
+            new TopicManagerMessage.RegisterTopic("news", newsId));
 
         // --- RPS lobby ---
-        var lobbyTopicRef = actorSystem.allocateRef("topic:lobby");
-        actorSystem.register(lobbyTopicRef, new TopicActor<TopicPayload>());
-        actorSystem.inject(topicManagerRef,
-            new TopicManagerMessage.RegisterTopic("lobby", lobbyTopicRef));
+        var lobbyTopicId = actorSystem.allocateId("topic:lobby");
+        actorSystem.register(lobbyTopicId, new TopicActor<TopicPayload>());
+        actorSystem.inject(topicManagerId,
+            new TopicManagerMessage.RegisterTopic("lobby", lobbyTopicId));
 
-        var lobbyRef = actorSystem.allocateRef("lobby");
-        actorSystem.register(lobbyRef, new LobbyActor(actorSystem, topicManagerRef, lobbyTopicRef));
+        var lobbyId = actorSystem.allocateId("lobby");
+        actorSystem.register(lobbyId, new LobbyActor(actorSystem, topicManagerId, lobbyTopicId));
         // Lobby subscribes to the lobby topic to receive join/leave requests
-        actorSystem.inject(lobbyTopicRef, new TopicMessage.Subscribe<>(lobbyRef));
+        actorSystem.inject(lobbyTopicId, new TopicMessage.Subscribe<>(lobbyId));
 
         // --- WebSocket server (generic bridge) ---
-        var leadRef = actorSystem.allocateRef("lead");
-        var leadActor = actorSystem.registerFrontier(leadRef,
-            WsLeadActor.constructor(actorSystem, topicManagerRef));
+        var leadId = actorSystem.allocateId("lead");
+        var leadActor = actorSystem.registerFrontier(leadId,
+            WsLeadActor.constructor(actorSystem, topicManagerId));
 
         vertx.createHttpServer()
             .webSocketHandler(ws -> {

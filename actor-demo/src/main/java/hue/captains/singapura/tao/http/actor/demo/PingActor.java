@@ -1,7 +1,7 @@
 package hue.captains.singapura.tao.http.actor.demo;
 
 import hue.captains.singapura.tao.http.actor.ActorAction;
-import hue.captains.singapura.tao.http.actor.ActorRef;
+import hue.captains.singapura.tao.http.actor.ActorId;
 import hue.captains.singapura.tao.http.actor.frontier.FrontierActor;
 
 import java.util.List;
@@ -10,32 +10,32 @@ import java.util.function.Consumer;
 public class PingActor implements FrontierActor<PingPongMessage.Pong, PingPongMessage.Ping> {
 
     private final Consumer<ActorAction.SendMessage<PingPongMessage.Ping>> listener;
-    private final ActorRef pongRef;
-    private final ActorRef selfRef;
+    private final ActorId pongId;
+    private final ActorId selfId;
 
     private PingActor(Consumer<ActorAction.SendMessage<PingPongMessage.Ping>> listener,
-                      ActorRef pongRef, ActorRef selfRef) {
+                      ActorId pongId, ActorId selfId) {
         this.listener = listener;
-        this.pongRef = pongRef;
-        this.selfRef = selfRef;
+        this.pongId = pongId;
+        this.selfId = selfId;
     }
 
     /** Simulates an external event (timer tick) that generates a Ping. */
     public void sendPing() {
-        System.out.println("[PingActor " + selfRef + "] Sending Ping -> " + pongRef);
-        listener.accept(new ActorAction.SendMessage<>(pongRef, new PingPongMessage.Ping(selfRef)));
+        System.out.println("[PingActor " + selfId + "] Sending Ping -> " + pongId);
+        listener.accept(new ActorAction.SendMessage<>(pongId, new PingPongMessage.Ping(selfId)));
     }
 
     @Override
     public List<ActorAction> receive(List<PingPongMessage.Pong> messages) {
         for (var pong : messages) {
-            System.out.println("[PingActor " + selfRef + "] Received Pong from " + pong.sender());
+            System.out.println("[PingActor " + selfId + "] Received Pong from " + pong.sender());
         }
         return List.of();
     }
 
     public static FrontierActor._Constructor<PingPongMessage.Pong, PingPongMessage.Ping, PingActor>
-    constructor(ActorRef pongRef, ActorRef selfRef) {
-        return listener -> new PingActor(listener, pongRef, selfRef);
+    constructor(ActorId pongId, ActorId selfId) {
+        return listener -> new PingActor(listener, pongId, selfId);
     }
 }

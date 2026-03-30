@@ -1,6 +1,6 @@
 package hue.captains.singapura.tao.http.actor.pubsub;
 
-import hue.captains.singapura.tao.http.actor.ActorRef;
+import hue.captains.singapura.tao.http.actor.ActorId;
 import hue.captains.singapura.tao.http.actor.Message;
 
 import java.util.Map;
@@ -21,7 +21,7 @@ public sealed interface SessionMessage extends Message._Receive, Message._Send
                 SessionMessage.TopicData {
 
     /** Initialization message sent by the Lead Actor after spawning. */
-    record Init(String connectionId, ActorRef leadRef, ActorRef topicManagerRef)
+    record Init(String connectionId, ActorId leadId, ActorId topicManagerId)
             implements SessionMessage {}
 
     /** Client wants to subscribe to a topic by name. */
@@ -40,7 +40,7 @@ public sealed interface SessionMessage extends Message._Receive, Message._Send
     record ClientDisconnect() implements SessionMessage {}
 
     /** Response from the Topic Manager with available topics. */
-    record TopicListReceived(Map<String, ActorRef> topics) implements SessionMessage {}
+    record TopicListReceived(Map<String, ActorId> topics) implements SessionMessage {}
 
     /** A message received from a topic the session is subscribed to. */
     record TopicData(Message payload) implements SessionMessage {}

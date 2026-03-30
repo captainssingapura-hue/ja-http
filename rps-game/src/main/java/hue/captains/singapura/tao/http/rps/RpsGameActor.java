@@ -3,7 +3,7 @@ package hue.captains.singapura.tao.http.rps;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import hue.captains.singapura.tao.http.actor.Actor;
 import hue.captains.singapura.tao.http.actor.ActorAction;
-import hue.captains.singapura.tao.http.actor.ActorRef;
+import hue.captains.singapura.tao.http.actor.ActorId;
 import hue.captains.singapura.tao.http.actor.Message;
 import hue.captains.singapura.tao.http.actor.pubsub.TopicManagerMessage;
 import hue.captains.singapura.tao.http.actor.pubsub.TopicMessage;
@@ -32,13 +32,13 @@ public class RpsGameActor implements Actor<Message._Receive, Message._Send> {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final int WINS_NEEDED = 10;
 
-    private final ActorRef selfRef;
+    private final ActorId selfId;
 
     // Set on Init
     private String gameId;
     private String gameTopic;
-    private ActorRef gameTopicRef;
-    private ActorRef topicManagerRef;
+    private ActorId gameTopicId;
+    private ActorId topicManagerId;
     private String playerAName;
     private String playerBName;
 
@@ -48,8 +48,8 @@ public class RpsGameActor implements Actor<Message._Receive, Message._Send> {
     private int scoreB = 0;
     private final Map<String, Choice> pendingChoices = new LinkedHashMap<>();
 
-    public RpsGameActor(ActorRef selfRef) {
-        this.selfRef = selfRef;
+    public RpsGameActor(ActorId selfId) {
+        this.selfId = selfId;
     }
 
     @Override
@@ -60,8 +60,8 @@ public class RpsGameActor implements Actor<Message._Receive, Message._Send> {
             switch (msg) {
                 case RpsGameInit init -> {
                     this.gameId = init.gameId();
-                    this.gameTopicRef = init.gameTopicRef();
-                    this.topicManagerRef = init.topicManagerRef();
+                    this.gameTopicId = init.gameTopicId();
+                    this.topicManagerId = init.topicManagerId();
                     this.playerAName = init.playerAName();
                     this.playerBName = init.playerBName();
                     this.gameTopic = "game:" + gameId;
@@ -70,8 +70,8 @@ public class RpsGameActor implements Actor<Message._Receive, Message._Send> {
                         gameId, playerAName, playerBName);
 
                     // Subscribe to the game topic; round starts when both players are ready
-                    actions.add(new ActorAction.SendMessage<>(gameTopicRef,
-                        new TopicMessage.Subscribe<>(selfRef)));
+                    actions.add(new ActorAction.SendMessage<>(gameTopicId,
+                        new TopicMessage.Subscribe<>(selfId)));
                 }
 
                 case TopicPayload tp -> {
@@ -170,9 +170,9 @@ public class RpsGameActor implements Actor<Message._Receive, Message._Send> {
                 "playerB", playerBName, "scoreB", scoreB)));
 
             // Cleanup
-            actions.add(new ActorAction.SendMessage<>(gameTopicRef,
-                new TopicMessage.Unsubscribe<>(selfRef)));
-            actions.add(new ActorAction.SendMessage<>(topicManagerRef,
+            actions.add(new ActorAction.SendMessage<>(gameTopicId,
+                new TopicMessage.Unsubscribe<>(selfId)));
+            actions.add(new ActorAction.SendMessage<>(topicManagerId,
                 new TopicManagerMessage.RetireTopic(gameTopic)));
             actions.add(new ActorAction.SelfTerminate());
         } else {
@@ -186,7 +186,7 @@ public class RpsGameActor implements Actor<Message._Receive, Message._Send> {
     private ActorAction publish(Map<String, Object> data) {
         try {
             var json = MAPPER.writeValueAsString(data);
-            return new ActorAction.SendMessage<>(gameTopicRef,
+            return new ActorAction.SendMessage<>(gameTopicId,
                 new TopicMessage.Publish<>(new TopicPayload(gameTopic, json)));
         } catch (Exception e) {
             throw new RuntimeException("Failed to serialize game message", e);
@@ -210,8 +210,8 @@ public class RpsGameActor implements Actor<Message._Receive, Message._Send> {
     /** Initialization message sent by the LobbyActor after creating the game. */
     public record RpsGameInit(
             String gameId,
-            ActorRef gameTopicRef,
-            ActorRef topicManagerRef,
+            ActorId gameTopicId,
+            ActorId topicManagerId,
             String playerAName,
             String playerBName
     ) implements Message._Receive, Message._Send {}

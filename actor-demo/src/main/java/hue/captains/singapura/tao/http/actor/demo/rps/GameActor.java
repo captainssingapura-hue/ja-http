@@ -1,7 +1,7 @@
 package hue.captains.singapura.tao.http.actor.demo.rps;
 
 import hue.captains.singapura.tao.http.actor.ActorAction;
-import hue.captains.singapura.tao.http.actor.ActorRef;
+import hue.captains.singapura.tao.http.actor.ActorId;
 import hue.captains.singapura.tao.http.actor.frontier.FrontierActor;
 
 import java.util.ArrayList;
@@ -13,12 +13,12 @@ import java.util.function.Consumer;
 public class GameActor implements FrontierActor<RpsMessage, RpsMessage> {
 
     private final Consumer<ActorAction.SendMessage<RpsMessage>> listener;
-    private final ActorRef selfRef;
+    private final ActorId selfId;
     private final int totalSets;
     private final int roundsPerSet;
 
     // Per-set state
-    private final Map<String, ActorRef> players = new LinkedHashMap<>();
+    private final Map<String, ActorId> players = new LinkedHashMap<>();
     private final Map<String, String> playerUuids = new LinkedHashMap<>();
     private final Map<String, RpsMessage.Choice> pendingChoices = new LinkedHashMap<>();
     private int setsCompleted = 0;
@@ -33,16 +33,16 @@ public class GameActor implements FrontierActor<RpsMessage, RpsMessage> {
     private int totalDraws = 0;
 
     private GameActor(Consumer<ActorAction.SendMessage<RpsMessage>> listener,
-                      ActorRef selfRef, int totalSets, int roundsPerSet) {
+                      ActorId selfId, int totalSets, int roundsPerSet) {
         this.listener = listener;
-        this.selfRef = selfRef;
+        this.selfId = selfId;
         this.totalSets = totalSets;
         this.roundsPerSet = roundsPerSet;
     }
 
     /** Called by the external clock to advance the game. */
     public void tick() {
-        listener.accept(new ActorAction.SendMessage<>(selfRef, new RpsMessage.Tick()));
+        listener.accept(new ActorAction.SendMessage<>(selfId, new RpsMessage.Tick()));
     }
 
     public boolean isFinished() {
@@ -56,7 +56,7 @@ public class GameActor implements FrontierActor<RpsMessage, RpsMessage> {
             switch (msg) {
                 case RpsMessage.Tick ignored -> actions.addAll(handleTick());
                 case RpsMessage.PlayerReady ready -> {
-                    players.put(ready.playerId(), ready.playerRef());
+                    players.put(ready.playerId(), ready.playerActorId());
                     playerUuids.put(ready.playerId(), ready.uuid());
                     if (players.size() == 2) {
                         System.out.printf("  Players: A (%s)  vs  B (%s)%n%n",
@@ -86,10 +86,10 @@ public class GameActor implements FrontierActor<RpsMessage, RpsMessage> {
             return List.of(
                     new ActorAction.SpawnSubActor<>(
                             PlayerActor.factory(),
-                            List.of(new RpsMessage.AssignId("A", selfRef))),
+                            List.of(new RpsMessage.AssignId("A", selfId))),
                     new ActorAction.SpawnSubActor<>(
                             PlayerActor.factory(),
-                            List.of(new RpsMessage.AssignId("B", selfRef)))
+                            List.of(new RpsMessage.AssignId("B", selfId)))
             );
         }
         if (roundsInSet < roundsPerSet) {
@@ -143,8 +143,8 @@ public class GameActor implements FrontierActor<RpsMessage, RpsMessage> {
 
         // Shut down current players
         var shutdown = new RpsMessage.Shutdown();
-        for (var playerRef : players.values()) {
-            actions.add(new ActorAction.SendMessage<>(playerRef, shutdown));
+        for (var playerId : players.values()) {
+            actions.add(new ActorAction.SendMessage<>(playerId, shutdown));
         }
 
         // Reset per-set state for the next set
@@ -170,7 +170,7 @@ public class GameActor implements FrontierActor<RpsMessage, RpsMessage> {
     }
 
     public static FrontierActor._Constructor<RpsMessage, RpsMessage, GameActor>
-    constructor(ActorRef selfRef, int totalSets, int roundsPerSet) {
-        return listener -> new GameActor(listener, selfRef, totalSets, roundsPerSet);
+    constructor(ActorId selfId, int totalSets, int roundsPerSet) {
+        return listener -> new GameActor(listener, selfId, totalSets, roundsPerSet);
     }
 }

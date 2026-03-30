@@ -1,6 +1,6 @@
 package hue.captains.singapura.tao.http.actor.pubsub;
 
-import hue.captains.singapura.tao.http.actor.ActorRef;
+import hue.captains.singapura.tao.http.actor.ActorId;
 import hue.captains.singapura.tao.http.actor.Message;
 
 /**
@@ -17,5 +17,5 @@ public sealed interface LeadMessage extends Message._Receive, Message._Send
     record NewConnection(String connectionId) implements LeadMessage {}
 
     /** Notification that a session has ended (client disconnected). */
-    record SessionEnded(ActorRef sessionRef) implements LeadMessage {}
+    record SessionEnded(ActorId sessionId) implements LeadMessage {}
 }

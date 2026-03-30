@@ -1,6 +1,6 @@
 package hue.captains.singapura.tao.http.actor.demo.rps;
 
-import hue.captains.singapura.tao.http.actor.ActorRef;
+import hue.captains.singapura.tao.http.actor.ActorId;
 import hue.captains.singapura.tao.http.actor.Message;
 
 public sealed interface RpsMessage extends Message, Message._Receive, Message._Send
@@ -15,10 +15,10 @@ public sealed interface RpsMessage extends Message, Message._Receive, Message._S
     record Tick() implements RpsMessage {}
 
     /** Initial message sent to a newly-spawned player to assign its identity. */
-    record AssignId(String playerId, ActorRef gameRef) implements RpsMessage {}
+    record AssignId(String playerId, ActorId gameActorId) implements RpsMessage {}
 
     /** Sent by a player back to the game actor after it has been assigned an id. */
-    record PlayerReady(String playerId, String uuid, ActorRef playerRef) implements RpsMessage {}
+    record PlayerReady(String playerId, String uuid, ActorId playerActorId) implements RpsMessage {}
 
     /** Sent by the game actor to both players to start a round. */
     record StartRound(int roundId) implements RpsMessage {}

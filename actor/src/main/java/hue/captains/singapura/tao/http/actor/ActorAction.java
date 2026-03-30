@@ -4,7 +4,7 @@ import java.util.List;
 
 public sealed interface ActorAction permits ActorAction.SendMessage, ActorAction.SpawnSubActor, ActorAction.SelfTerminate {
 
-    record SendMessage<M extends Message._Send>(ActorRef to, M message) implements ActorAction{}
+    record SendMessage<M extends Message._Send>(ActorId to, M message) implements ActorAction{}
 
     /**
      *

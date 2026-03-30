@@ -2,7 +2,7 @@ package hue.captains.singapura.tao.http.actor.demo.rps;
 
 import hue.captains.singapura.tao.http.actor.Actor;
 import hue.captains.singapura.tao.http.actor.ActorAction;
-import hue.captains.singapura.tao.http.actor.ActorRef;
+import hue.captains.singapura.tao.http.actor.ActorId;
 import hue.captains.singapura.tao.http.actor.demo.ActorFactory;
 
 import java.util.ArrayList;
@@ -14,13 +14,13 @@ public class PlayerActor implements Actor<RpsMessage, RpsMessage> {
 
     private static final RpsMessage.Choice[] CHOICES = RpsMessage.Choice.values();
 
-    private final ActorRef selfRef;
+    private final ActorId selfId;
     private final String uuid = UUID.randomUUID().toString().substring(0, 8);
     private String playerId;
-    private ActorRef gameRef;
+    private ActorId gameActorId;
 
-    private PlayerActor(ActorRef selfRef) {
-        this.selfRef = selfRef;
+    private PlayerActor(ActorId selfId) {
+        this.selfId = selfId;
     }
 
     @Override
@@ -30,14 +30,14 @@ public class PlayerActor implements Actor<RpsMessage, RpsMessage> {
             switch (msg) {
                 case RpsMessage.AssignId assign -> {
                     this.playerId = assign.playerId();
-                    this.gameRef = assign.gameRef();
+                    this.gameActorId = assign.gameActorId();
                     actions.add(new ActorAction.SendMessage<>(
-                            gameRef, new RpsMessage.PlayerReady(playerId, uuid, selfRef)));
+                            gameActorId, new RpsMessage.PlayerReady(playerId, uuid, selfId)));
                 }
                 case RpsMessage.StartRound round -> {
                     var choice = CHOICES[ThreadLocalRandom.current().nextInt(CHOICES.length)];
                     actions.add(new ActorAction.SendMessage<>(
-                            gameRef, new RpsMessage.PlayerChoice(playerId, round.roundId(), choice)));
+                            gameActorId, new RpsMessage.PlayerChoice(playerId, round.roundId(), choice)));
                 }
                 case RpsMessage.Shutdown ignored -> {
                     System.out.println("  [Player " + playerId + " (" + uuid + ")] Shutting down");

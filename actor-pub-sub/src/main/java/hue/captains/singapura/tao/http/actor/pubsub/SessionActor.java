@@ -2,7 +2,7 @@ package hue.captains.singapura.tao.http.actor.pubsub;
 
 import hue.captains.singapura.tao.http.actor.Actor;
 import hue.captains.singapura.tao.http.actor.ActorAction;
-import hue.captains.singapura.tao.http.actor.ActorRef;
+import hue.captains.singapura.tao.http.actor.ActorId;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -21,20 +21,20 @@ import java.util.Set;
  */
 public class SessionActor implements Actor<SessionMessage, SessionMessage> {
 
-    private final ActorRef selfRef;
+    private final ActorId selfId;
 
-    private ActorRef leadRef;
-    private ActorRef topicManagerRef;
+    private ActorId leadId;
+    private ActorId topicManagerId;
     private String connectionId;
 
-    /** Resolved topic name to ActorRef — populated from Topic Manager responses. */
-    private final Map<String, ActorRef> knownTopics = new LinkedHashMap<>();
+    /** Resolved topic name to ActorId — populated from Topic Manager responses. */
+    private final Map<String, ActorId> knownTopics = new LinkedHashMap<>();
 
     /** Topics this session is currently subscribed to (by name). */
     private final Set<String> activeSubscriptions = new LinkedHashSet<>();
 
-    public SessionActor(ActorRef selfRef) {
-        this.selfRef = selfRef;
+    public SessionActor(ActorId selfId) {
+        this.selfId = selfId;
     }
 
     @Override
@@ -45,41 +45,41 @@ public class SessionActor implements Actor<SessionMessage, SessionMessage> {
             switch (msg) {
                 case SessionMessage.Init init -> {
                     this.connectionId = init.connectionId();
-                    this.leadRef = init.leadRef();
-                    this.topicManagerRef = init.topicManagerRef();
+                    this.leadId = init.leadId();
+                    this.topicManagerId = init.topicManagerId();
                     // Immediately query for available topics
-                    actions.add(new ActorAction.SendMessage<>(topicManagerRef,
-                        new TopicManagerMessage.QueryTopics(selfRef)));
+                    actions.add(new ActorAction.SendMessage<>(topicManagerId,
+                        new TopicManagerMessage.QueryTopics(selfId)));
                 }
 
                 case SessionMessage.TopicListReceived topicList ->
                     knownTopics.putAll(topicList.topics());
 
                 case SessionMessage.ClientListTopics ignored ->
-                    actions.add(new ActorAction.SendMessage<>(topicManagerRef,
-                        new TopicManagerMessage.QueryTopics(selfRef)));
+                    actions.add(new ActorAction.SendMessage<>(topicManagerId,
+                        new TopicManagerMessage.QueryTopics(selfId)));
 
                 case SessionMessage.ClientSubscribe sub -> {
-                    var topicRef = knownTopics.get(sub.topicName());
-                    if (topicRef != null) {
+                    var topicId = knownTopics.get(sub.topicName());
+                    if (topicId != null) {
                         activeSubscriptions.add(sub.topicName());
-                        actions.add(new ActorAction.SendMessage<>(topicRef,
-                            new TopicMessage.Subscribe<>(selfRef)));
+                        actions.add(new ActorAction.SendMessage<>(topicId,
+                            new TopicMessage.Subscribe<>(selfId)));
                     }
                 }
 
                 case SessionMessage.ClientUnsubscribe unsub -> {
-                    var topicRef = knownTopics.get(unsub.topicName());
-                    if (topicRef != null && activeSubscriptions.remove(unsub.topicName())) {
-                        actions.add(new ActorAction.SendMessage<>(topicRef,
-                            new TopicMessage.Unsubscribe<>(selfRef)));
+                    var topicId = knownTopics.get(unsub.topicName());
+                    if (topicId != null && activeSubscriptions.remove(unsub.topicName())) {
+                        actions.add(new ActorAction.SendMessage<>(topicId,
+                            new TopicMessage.Unsubscribe<>(selfId)));
                     }
                 }
 
                 case SessionMessage.ClientPublish pub -> {
-                    var topicRef = knownTopics.get(pub.topicName());
-                    if (topicRef != null) {
-                        actions.add(new ActorAction.SendMessage<>(topicRef,
+                    var topicId = knownTopics.get(pub.topicName());
+                    if (topicId != null) {
+                        actions.add(new ActorAction.SendMessage<>(topicId,
                             new TopicMessage.Publish<>(pub.payload())));
                     }
                 }
@@ -92,17 +92,17 @@ public class SessionActor implements Actor<SessionMessage, SessionMessage> {
                 case SessionMessage.ClientDisconnect ignored -> {
                     // Unsubscribe from all active topics
                     for (var topicName : activeSubscriptions) {
-                        var topicRef = knownTopics.get(topicName);
-                        if (topicRef != null) {
-                            actions.add(new ActorAction.SendMessage<>(topicRef,
-                                new TopicMessage.Unsubscribe<>(selfRef)));
+                        var topicId = knownTopics.get(topicName);
+                        if (topicId != null) {
+                            actions.add(new ActorAction.SendMessage<>(topicId,
+                                new TopicMessage.Unsubscribe<>(selfId)));
                         }
                     }
                     activeSubscriptions.clear();
                     // Notify the lead actor
-                    if (leadRef != null) {
-                        actions.add(new ActorAction.SendMessage<>(leadRef,
-                            new LeadMessage.SessionEnded(selfRef)));
+                    if (leadId != null) {
+                        actions.add(new ActorAction.SendMessage<>(leadId,
+                            new LeadMessage.SessionEnded(selfId)));
                     }
                     actions.add(new ActorAction.SelfTerminate());
                 }
@@ -120,7 +120,7 @@ public class SessionActor implements Actor<SessionMessage, SessionMessage> {
         return Set.copyOf(activeSubscriptions);
     }
 
-    public Map<String, ActorRef> knownTopics() {
+    public Map<String, ActorId> knownTopics() {
         return Map.copyOf(knownTopics);
     }
 }

@@ -3,7 +3,7 @@ package hue.captains.singapura.tao.http.rps;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import hue.captains.singapura.tao.http.actor.Actor;
 import hue.captains.singapura.tao.http.actor.ActorAction;
-import hue.captains.singapura.tao.http.actor.ActorRef;
+import hue.captains.singapura.tao.http.actor.ActorId;
 import hue.captains.singapura.tao.http.actor.ActorSystem;
 import hue.captains.singapura.tao.http.actor.Message;
 import hue.captains.singapura.tao.http.actor.pubsub.TopicActor;
@@ -37,15 +37,15 @@ public class LobbyActor implements Actor<Message._Receive, Message._Send> {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final ActorSystem actorSystem;
-    private final ActorRef topicManagerRef;
-    private final ActorRef lobbyTopicRef;
+    private final ActorId topicManagerId;
+    private final ActorId lobbyTopicId;
     private final Deque<String> waitingPlayers = new ArrayDeque<>();
     private int gameCounter = 0;
 
-    public LobbyActor(ActorSystem actorSystem, ActorRef topicManagerRef, ActorRef lobbyTopicRef) {
+    public LobbyActor(ActorSystem actorSystem, ActorId topicManagerId, ActorId lobbyTopicId) {
         this.actorSystem = actorSystem;
-        this.topicManagerRef = topicManagerRef;
-        this.lobbyTopicRef = lobbyTopicRef;
+        this.topicManagerId = topicManagerId;
+        this.lobbyTopicId = lobbyTopicId;
     }
 
     @Override
@@ -105,16 +105,16 @@ public class LobbyActor implements Actor<Message._Receive, Message._Send> {
         var gameTopic = "game:" + gameId;
 
         // Create game topic
-        var gameTopicRef = actorSystem.allocateRef("topic:" + gameTopic);
-        actorSystem.register(gameTopicRef, new TopicActor<TopicPayload>());
-        actorSystem.inject(topicManagerRef,
-            new TopicManagerMessage.RegisterTopic(gameTopic, gameTopicRef));
+        var gameTopicId = actorSystem.allocateId("topic:" + gameTopic);
+        actorSystem.register(gameTopicId, new TopicActor<TopicPayload>());
+        actorSystem.inject(topicManagerId,
+            new TopicManagerMessage.RegisterTopic(gameTopic, gameTopicId));
 
         // Create game actor
-        var gameActorRef = actorSystem.allocateRef("rps-game:" + gameId);
-        actorSystem.register(gameActorRef, new RpsGameActor(gameActorRef));
-        actorSystem.inject(gameActorRef, new RpsGameActor.RpsGameInit(
-            gameId, gameTopicRef, topicManagerRef, playerA, playerB));
+        var gameActorId = actorSystem.allocateId("rps-game:" + gameId);
+        actorSystem.register(gameActorId, new RpsGameActor(gameActorId));
+        actorSystem.inject(gameActorId, new RpsGameActor.RpsGameInit(
+            gameId, gameTopicId, topicManagerId, playerA, playerB));
 
         System.out.printf("[Lobby] Matched: %s vs %s -> Game %s%n", playerA, playerB, gameId);
 
@@ -126,7 +126,7 @@ public class LobbyActor implements Actor<Message._Receive, Message._Send> {
                 "gameTopic", gameTopic,
                 "playerA", playerA,
                 "playerB", playerB));
-            actions.add(new ActorAction.SendMessage<>(lobbyTopicRef,
+            actions.add(new ActorAction.SendMessage<>(lobbyTopicId,
                 new TopicMessage.Publish<>(new TopicPayload("lobby", payload))));
         } catch (Exception e) {
             System.err.println("[Lobby] Failed to serialize game_created: " + e.getMessage());

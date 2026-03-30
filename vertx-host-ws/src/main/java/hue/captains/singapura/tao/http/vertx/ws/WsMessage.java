@@ -1,6 +1,6 @@
 package hue.captains.singapura.tao.http.vertx.ws;
 
-import hue.captains.singapura.tao.http.actor.ActorRef;
+import hue.captains.singapura.tao.http.actor.ActorId;
 import hue.captains.singapura.tao.http.actor.Message;
 
 /**
@@ -14,8 +14,8 @@ public sealed interface WsMessage extends Message._Receive, Message._Send
                 WsMessage.IncomingFrame,
                 WsMessage.Disconnected {
 
-    /** Sent to a session actor after registration, providing the topic manager ref. */
-    record Init(ActorRef topicManagerRef) implements WsMessage {}
+    /** Sent to a session actor after registration, providing the topic manager id. */
+    record Init(ActorId topicManagerId) implements WsMessage {}
 
     /** A text frame received from the WebSocket client. */
     record IncomingFrame(String text) implements WsMessage {}
