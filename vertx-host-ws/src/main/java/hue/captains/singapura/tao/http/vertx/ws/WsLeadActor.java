@@ -20,14 +20,15 @@ import java.util.function.Consumer;
  * <p>
  * Application-agnostic: knows nothing about what topics exist or what messages flow through them.
  */
-public class WsLeadActor implements FrontierActor<WsMessage, WsMessage> {
+@SuppressWarnings({"rawtypes", "unchecked"})
+public class WsLeadActor implements FrontierActor<WsMessage> {
 
-    private final Consumer<ActorAction.SendMessage<WsMessage>> listener;
+    private final Consumer<ActorAction.SendMessage<?,?>> listener;
     private final ActorSystem actorSystem;
     private final ActorId topicManagerId;
     private final Set<ActorId> activeSessions = new LinkedHashSet<>();
 
-    private WsLeadActor(Consumer<ActorAction.SendMessage<WsMessage>> listener,
+    private WsLeadActor(Consumer<ActorAction.SendMessage<?,?>> listener,
                         ActorSystem actorSystem, ActorId topicManagerId) {
         this.listener = listener;
         this.actorSystem = actorSystem;
@@ -39,7 +40,7 @@ public class WsLeadActor implements FrontierActor<WsMessage, WsMessage> {
      * Creates and registers a new session actor for this connection.
      */
     public void onNewConnection(ServerWebSocket ws) {
-        var sessionId = actorSystem.allocateId("ws-session");
+        var sessionId = ActorId.allocate(null, "ws-session");
         actorSystem.registerFrontier(sessionId,
             WsSessionActor.constructor(ws, sessionId));
         activeSessions.add(sessionId);
@@ -54,7 +55,7 @@ public class WsLeadActor implements FrontierActor<WsMessage, WsMessage> {
         return List.of();
     }
 
-    public static FrontierActor._Constructor<WsMessage, WsMessage, WsLeadActor>
+    public static FrontierActor._Constructor<WsMessage, WsLeadActor>
     constructor(ActorSystem actorSystem, ActorId topicManagerId) {
         return listener -> new WsLeadActor(listener, actorSystem, topicManagerId);
     }

@@ -3,16 +3,18 @@ package hue.captains.singapura.tao.http.actor.demo.rps;
 import hue.captains.singapura.tao.http.actor.Actor;
 import hue.captains.singapura.tao.http.actor.ActorAction;
 import hue.captains.singapura.tao.http.actor.ActorId;
-import hue.captains.singapura.tao.http.actor.demo.ActorFactory;
+import hue.captains.singapura.tao.http.actor.ActorFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class PlayerActor implements Actor<RpsMessage, RpsMessage> {
+public class PlayerActor implements Actor<RpsMessage> {
 
     private static final RpsMessage.Choice[] CHOICES = RpsMessage.Choice.values();
+
+    public static final ActorFactory<RpsMessage, PlayerActor> ATR = PlayerActor::new;
 
     private final ActorId selfId;
     private final String uuid = UUID.randomUUID().toString().substring(0, 8);
@@ -49,7 +51,7 @@ public class PlayerActor implements Actor<RpsMessage, RpsMessage> {
         return actions;
     }
 
-    public static ActorFactory<RpsMessage, RpsMessage> factory() {
+    public static ActorFactory<RpsMessage, PlayerActor> factory() {
         return PlayerActor::new;
     }
 }

@@ -7,7 +7,10 @@ import hue.captains.singapura.tao.http.actor.ActorId;
 import java.util.ArrayList;
 import java.util.List;
 
-public class PongActor implements Actor<PingPongMessage.Ping, PingPongMessage.Pong> {
+@SuppressWarnings({"rawtypes", "unchecked"})
+public class PongActor implements Actor<PingPongMessage.Ping> {
+
+    public static final Actor._TypeRef<PingPongMessage.Ping, PongActor> ATR = new Actor._TypeRef<>() {};
 
     private final ActorId selfId;
 

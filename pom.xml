@@ -21,6 +21,10 @@
         <module>rps-game</module>
         <module>vertx-host-ws</module>
         <module>vertx-host-combined</module>
+        <module>rps-game-2</module>
+        <module>actor-system</module>
+        <module>actor-remote</module>
+        <module>rps-game-2-remote</module>
     </modules>
 
     <properties>

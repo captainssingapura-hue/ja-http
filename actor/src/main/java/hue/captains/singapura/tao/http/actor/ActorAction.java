@@ -4,17 +4,16 @@ import java.util.List;
 
 public sealed interface ActorAction permits ActorAction.SendMessage, ActorAction.SpawnSubActor, ActorAction.SelfTerminate {
 
-    record SendMessage<M extends Message._Send>(ActorId to, M message) implements ActorAction{}
+    record SendMessage<R extends Message._Receive, A extends Actor<R>>(ActorId<R,A> to, R message) implements ActorAction{}
 
     /**
      *
      * @param actorType The type of sub-actor to spawn.
      * @param initialMessages The starting message for the sub-actor to start work. Analogy to constructor args.
      * @param <R>
-     * @param <S>
      * @param <A>
      */
-    record SpawnSubActor<R extends Message._Receive, S extends Message._Send, A extends Actor._TypeRef<R,S>>(A actorType, List<R> initialMessages) implements ActorAction{}
+    record SpawnSubActor<R extends Message._Receive, A extends Actor<R>>(Actor._TypeRef<R,A> actorType, List<R> initialMessages) implements ActorAction{}
 
     /**
      * Returned by an actor to voluntarily terminate itself.

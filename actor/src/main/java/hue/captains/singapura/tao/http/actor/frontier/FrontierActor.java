@@ -13,22 +13,20 @@ import java.util.function.Consumer;
  * It also acts as a regular actor to receive message from other actors and in most cases will be responsible to translate internal messages
  * to external ones and send out.
  * @param <R>
- * @param <S>
  */
-public interface FrontierActor<R extends Message._Receive, S extends Message._Send> extends Actor<R, S> {
+public interface FrontierActor<R extends Message._Receive> extends Actor<R> {
 
     /**
      * Adding a separate interface to make sure the FrontierActor is structurally immutable. <br>
      * i.e. once constructed, the listeners (which is typically managed by the actor system) should be fixed.
      * @param <R>
-     * @param <S>
      * @param <A>
      */
-    interface _Constructor<R extends Message._Receive, S extends Message._Send, A extends FrontierActor<R,S>>{
+    interface _Constructor<R extends Message._Receive, A extends FrontierActor<R>>{
         /**
          * @param listeners to consume message received from external systems
          * @return
          */
-        A construct(Consumer<ActorAction.SendMessage<S>> listeners);
+        A construct(Consumer<ActorAction.SendMessage<?,?>> listeners);
     }
 }

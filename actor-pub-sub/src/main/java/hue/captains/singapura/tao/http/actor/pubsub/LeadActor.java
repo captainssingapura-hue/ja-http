@@ -21,8 +21,9 @@ import java.util.Set;
  *
  * @param <F> the session factory type, which must be an {@link Actor._TypeRef}
  */
-public class LeadActor<F extends Actor._TypeRef<SessionMessage, SessionMessage>>
-        implements Actor<LeadMessage, LeadMessage> {
+@SuppressWarnings({"rawtypes", "unchecked"})
+public class LeadActor<F extends Actor._TypeRef>
+        implements Actor<LeadMessage> {
 
     private final ActorId selfId;
     private final ActorId topicManagerId;

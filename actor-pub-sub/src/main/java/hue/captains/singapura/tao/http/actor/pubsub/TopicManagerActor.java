@@ -16,7 +16,8 @@ import java.util.Map;
  * Topics are registered externally via {@link TopicManagerMessage.RegisterTopic} —
  * the manager is a directory, not a factory.
  */
-public class TopicManagerActor implements Actor<TopicManagerMessage, TopicManagerMessage> {
+@SuppressWarnings({"rawtypes", "unchecked"})
+public class TopicManagerActor implements Actor<TopicManagerMessage> {
 
     private final Map<String, ActorId> topics = new LinkedHashMap<>();
 
