@@ -14,7 +14,7 @@
     <dependencies>
         <dependency>
             <groupId>io.github.captainssingapura-hue.tong.ja-http</groupId>
-            <artifactId>actor</artifactId>
+            <artifactId>actor-system</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
         <dependency>

@@ -19,7 +19,8 @@ import java.util.Set;
  * message with the refs it needs. It queries the Topic Manager to discover available topics,
  * then interacts with Topic Actors directly for subscribe/publish.
  */
-public class SessionActor implements Actor<SessionMessage, SessionMessage> {
+@SuppressWarnings({"rawtypes", "unchecked"})
+public class SessionActor implements Actor<SessionMessage> {
 
     private final ActorId selfId;
 

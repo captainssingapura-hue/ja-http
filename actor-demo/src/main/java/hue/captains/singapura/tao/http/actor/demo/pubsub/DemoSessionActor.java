@@ -26,7 +26,8 @@ import java.util.Set;
  * In a real WebSocket deployment, this would be a FrontierActor that translates
  * between WebSocket frames and actor messages.
  */
-public class DemoSessionActor implements Actor<Message._Receive, Message._Send> {
+@SuppressWarnings({"rawtypes", "unchecked"})
+public class DemoSessionActor implements Actor<Message._Receive> {
 
     private final ActorId selfId;
     private final String connectionId;

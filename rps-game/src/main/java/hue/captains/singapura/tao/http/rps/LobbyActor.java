@@ -32,7 +32,8 @@ import java.util.Map;
  *   {"type": "game_created", "gameId": "G1", "gameTopic": "game:G1", "playerA": "Alice", "playerB": "Bob"}
  * </pre>
  */
-public class LobbyActor implements Actor<Message._Receive, Message._Send> {
+@SuppressWarnings({"rawtypes", "unchecked"})
+public class LobbyActor implements Actor<Message._Receive> {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -105,13 +106,13 @@ public class LobbyActor implements Actor<Message._Receive, Message._Send> {
         var gameTopic = "game:" + gameId;
 
         // Create game topic
-        var gameTopicId = actorSystem.allocateId("topic:" + gameTopic);
+        var gameTopicId = ActorId.allocate(null, "topic:" + gameTopic);
         actorSystem.register(gameTopicId, new TopicActor<TopicPayload>());
         actorSystem.inject(topicManagerId,
             new TopicManagerMessage.RegisterTopic(gameTopic, gameTopicId));
 
         // Create game actor
-        var gameActorId = actorSystem.allocateId("rps-game:" + gameId);
+        var gameActorId = ActorId.allocate(null, "rps-game:" + gameId);
         actorSystem.register(gameActorId, new RpsGameActor(gameActorId));
         actorSystem.inject(gameActorId, new RpsGameActor.RpsGameInit(
             gameId, gameTopicId, topicManagerId, playerA, playerB));

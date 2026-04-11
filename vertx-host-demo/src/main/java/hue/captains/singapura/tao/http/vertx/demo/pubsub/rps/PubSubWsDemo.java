@@ -1,12 +1,13 @@
 package hue.captains.singapura.tao.http.vertx.demo.pubsub.rps;
 
+import hue.captains.singapura.tao.http.actor.ActorId;
+import hue.captains.singapura.tao.http.actor.system.EventLoopActorSystem;
 import hue.captains.singapura.tao.http.rps.LobbyActor;
 import hue.captains.singapura.tao.http.actor.pubsub.TopicActor;
 import hue.captains.singapura.tao.http.actor.pubsub.TopicManagerActor;
 import hue.captains.singapura.tao.http.actor.pubsub.TopicManagerMessage;
 import hue.captains.singapura.tao.http.actor.pubsub.TopicMessage;
 import hue.captains.singapura.tao.http.actor.pubsub.TopicPayload;
-import hue.captains.singapura.tao.http.vertx.ws.VertxActorSystem;
 import hue.captains.singapura.tao.http.vertx.ws.WsLeadActor;
 import io.vertx.core.Vertx;
 
@@ -24,42 +25,45 @@ import io.vertx.core.Vertx;
  *
  * <p>Test with: {@code websocat ws://localhost:8081/pubsub}
  */
+@SuppressWarnings({"rawtypes", "unchecked"})
 public class PubSubWsDemo {
 
     public static void main(String[] args) {
         var vertx = Vertx.vertx();
-        var actorSystem = new VertxActorSystem(vertx);
+        var actorSystem = new EventLoopActorSystem();
 
         // --- Topic Manager ---
-        var topicManagerId = actorSystem.allocateId("topicManager");
+        var topicManagerId = ActorId.allocate(null,"topicManager");
         actorSystem.register(topicManagerId, new TopicManagerActor());
 
         // --- Pre-create topics ---
-        var pricesId = actorSystem.allocateId("topic:prices");
+        var pricesId = ActorId.allocate(null,"topic:prices");
         actorSystem.register(pricesId, new TopicActor<TopicPayload>());
         actorSystem.inject(topicManagerId,
             new TopicManagerMessage.RegisterTopic("prices", pricesId));
 
-        var newsId = actorSystem.allocateId("topic:news");
+        var newsId = ActorId.allocate(null,"topic:news");
         actorSystem.register(newsId, new TopicActor<TopicPayload>());
         actorSystem.inject(topicManagerId,
             new TopicManagerMessage.RegisterTopic("news", newsId));
 
         // --- RPS lobby ---
-        var lobbyTopicId = actorSystem.allocateId("topic:lobby");
+        var lobbyTopicId = ActorId.allocate(null,"topic:lobby");
         actorSystem.register(lobbyTopicId, new TopicActor<TopicPayload>());
         actorSystem.inject(topicManagerId,
             new TopicManagerMessage.RegisterTopic("lobby", lobbyTopicId));
 
-        var lobbyId = actorSystem.allocateId("lobby");
+        var lobbyId = ActorId.allocate(null,"lobby");
         actorSystem.register(lobbyId, new LobbyActor(actorSystem, topicManagerId, lobbyTopicId));
         // Lobby subscribes to the lobby topic to receive join/leave requests
         actorSystem.inject(lobbyTopicId, new TopicMessage.Subscribe<>(lobbyId));
 
         // --- WebSocket server (generic bridge) ---
-        var leadId = actorSystem.allocateId("lead");
+        var leadId = ActorId.allocate(null,"lead");
         var leadActor = actorSystem.registerFrontier(leadId,
             WsLeadActor.constructor(actorSystem, topicManagerId));
+
+        actorSystem.start();
 
         vertx.createHttpServer()
             .webSocketHandler(ws -> {

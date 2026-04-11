@@ -40,11 +40,12 @@ import java.util.function.Consumer;
  *   {"type": "error", "message": "..."}
  * </pre>
  */
-public class WsSessionActor implements FrontierActor<Message._Receive, Message._Send> {
+@SuppressWarnings({"rawtypes", "unchecked"})
+public class WsSessionActor implements FrontierActor<Message._Receive> {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    private final Consumer<ActorAction.SendMessage<Message._Send>> listener;
+    private final Consumer<ActorAction.SendMessage<?,?>> listener;
     private final ServerWebSocket ws;
     private final ActorId selfId;
 
@@ -52,7 +53,7 @@ public class WsSessionActor implements FrontierActor<Message._Receive, Message._
     private final Map<String, ActorId> knownTopics = new LinkedHashMap<>();
     private final Set<String> activeSubscriptions = new LinkedHashSet<>();
 
-    private WsSessionActor(Consumer<ActorAction.SendMessage<Message._Send>> listener,
+    private WsSessionActor(Consumer<ActorAction.SendMessage<?,?>> listener,
                            ServerWebSocket ws, ActorId selfId) {
         this.listener = listener;
         this.ws = ws;
@@ -193,7 +194,7 @@ public class WsSessionActor implements FrontierActor<Message._Receive, Message._
         }
     }
 
-    public static FrontierActor._Constructor<Message._Receive, Message._Send, WsSessionActor>
+    public static FrontierActor._Constructor<Message._Receive, WsSessionActor>
     constructor(ServerWebSocket ws, ActorId selfId) {
         return listener -> new WsSessionActor(listener, ws, selfId);
     }

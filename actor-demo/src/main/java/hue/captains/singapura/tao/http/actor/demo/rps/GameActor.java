@@ -1,5 +1,6 @@
 package hue.captains.singapura.tao.http.actor.demo.rps;
 
+import hue.captains.singapura.tao.http.actor.Actor;
 import hue.captains.singapura.tao.http.actor.ActorAction;
 import hue.captains.singapura.tao.http.actor.ActorId;
 import hue.captains.singapura.tao.http.actor.frontier.FrontierActor;
@@ -10,9 +11,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
-public class GameActor implements FrontierActor<RpsMessage, RpsMessage> {
+@SuppressWarnings({"rawtypes", "unchecked"})
+public class GameActor implements FrontierActor<RpsMessage> {
 
-    private final Consumer<ActorAction.SendMessage<RpsMessage>> listener;
+    public static final Actor._TypeRef<RpsMessage, GameActor> ATR = new Actor._TypeRef<>() {};
+
+    private final Consumer<ActorAction.SendMessage<?,?>> listener;
     private final ActorId selfId;
     private final int totalSets;
     private final int roundsPerSet;
@@ -32,7 +36,7 @@ public class GameActor implements FrontierActor<RpsMessage, RpsMessage> {
     private int totalBWins = 0;
     private int totalDraws = 0;
 
-    private GameActor(Consumer<ActorAction.SendMessage<RpsMessage>> listener,
+    private GameActor(Consumer<ActorAction.SendMessage<?,?>> listener,
                       ActorId selfId, int totalSets, int roundsPerSet) {
         this.listener = listener;
         this.selfId = selfId;
@@ -85,10 +89,10 @@ public class GameActor implements FrontierActor<RpsMessage, RpsMessage> {
             System.out.println("=== Set " + setNumber + " of " + totalSets + " ===");
             return List.of(
                     new ActorAction.SpawnSubActor<>(
-                            PlayerActor.factory(),
+                            PlayerActor.ATR,
                             List.of(new RpsMessage.AssignId("A", selfId))),
                     new ActorAction.SpawnSubActor<>(
-                            PlayerActor.factory(),
+                            PlayerActor.ATR,
                             List.of(new RpsMessage.AssignId("B", selfId)))
             );
         }
@@ -169,7 +173,7 @@ public class GameActor implements FrontierActor<RpsMessage, RpsMessage> {
         System.out.println();
     }
 
-    public static FrontierActor._Constructor<RpsMessage, RpsMessage, GameActor>
+    public static FrontierActor._Constructor<RpsMessage, GameActor>
     constructor(ActorId selfId, int totalSets, int roundsPerSet) {
         return listener -> new GameActor(listener, selfId, totalSets, roundsPerSet);
     }

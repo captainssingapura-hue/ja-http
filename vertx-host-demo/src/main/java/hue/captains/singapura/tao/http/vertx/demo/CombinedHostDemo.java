@@ -1,5 +1,7 @@
 package hue.captains.singapura.tao.http.vertx.demo;
 
+import hue.captains.singapura.tao.http.actor.ActorId;
+import hue.captains.singapura.tao.http.actor.system.EventLoopActorSystem;
 import hue.captains.singapura.tao.http.actor.pubsub.TopicActor;
 import hue.captains.singapura.tao.http.actor.pubsub.TopicManagerActor;
 import hue.captains.singapura.tao.http.actor.pubsub.TopicManagerMessage;
@@ -21,38 +23,40 @@ import hue.captains.singapura.tao.http.vertx.VertxCombinedHost;
  *   websocat ws://localhost:8080/pubsub
  * </pre>
  */
+@SuppressWarnings({"rawtypes", "unchecked"})
 public class CombinedHostDemo {
 
     public static void main(String[] args) {
-        var host = new VertxCombinedHost(new EchoActionRegistry(), 8080);
-        var actorSystem = host.actorSystem();
+        var actorSystem = new EventLoopActorSystem();
+        var host = new VertxCombinedHost(actorSystem, new EchoActionRegistry(), 8080);
 
         // --- Topic Manager ---
-        var topicManagerId = actorSystem.allocateId("topicManager");
+        var topicManagerId = ActorId.allocate(null,"topicManager");
         actorSystem.register(topicManagerId, new TopicManagerActor());
 
         // --- Topics ---
-        var pricesId = actorSystem.allocateId("topic:prices");
+        var pricesId = ActorId.allocate(null,"topic:prices");
         actorSystem.register(pricesId, new TopicActor<TopicPayload>());
         actorSystem.inject(topicManagerId,
             new TopicManagerMessage.RegisterTopic("prices", pricesId));
 
-        var newsId = actorSystem.allocateId("topic:news");
+        var newsId = ActorId.allocate(null,"topic:news");
         actorSystem.register(newsId, new TopicActor<TopicPayload>());
         actorSystem.inject(topicManagerId,
             new TopicManagerMessage.RegisterTopic("news", newsId));
 
         // --- RPS lobby ---
-        var lobbyTopicId = actorSystem.allocateId("topic:lobby");
+        var lobbyTopicId = ActorId.allocate(null,"topic:lobby");
         actorSystem.register(lobbyTopicId, new TopicActor<TopicPayload>());
         actorSystem.inject(topicManagerId,
             new TopicManagerMessage.RegisterTopic("lobby", lobbyTopicId));
 
-        var lobbyId = actorSystem.allocateId("lobby");
+        var lobbyId = ActorId.allocate(null,"lobby");
         actorSystem.register(lobbyId, new LobbyActor(actorSystem, topicManagerId, lobbyTopicId));
         actorSystem.inject(lobbyTopicId, new TopicMessage.Subscribe<>(lobbyId));
 
         // --- Start ---
+        actorSystem.start();
         host.start("/pubsub", topicManagerId)
             .onSuccess(server -> {
                 System.out.println("Combined server listening on port " + server.actualPort());

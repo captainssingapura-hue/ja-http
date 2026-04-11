@@ -27,7 +27,7 @@ import java.util.function.Consumer;
 public class VertxActorSystem implements ActorSystem {
 
     private final Vertx vertx;
-    private final Map<ActorId, Actor<?, ?>> actors = new LinkedHashMap<>();
+    private final Map<ActorId, Actor<?>> actors = new LinkedHashMap<>();
     private final Deque<Envelope> mailbox = new ArrayDeque<>();
     private boolean processingScheduled = false;
 
@@ -38,19 +38,19 @@ public class VertxActorSystem implements ActorSystem {
     }
 
     @Override
-    public ActorId allocateId(String name) {
-        return ActorId.allocate(name);
+    public <R extends Message._Receive, A extends Actor<R>> ActorId<R,A> allocateId(Actor._TypeRef<R,A> atr, String name) {
+        return ActorId.allocate(atr, name);
     }
 
     @Override
-    public void register(ActorId id, Actor<?, ?> actor) {
+    public void register(ActorId id, Actor<?> actor) {
         actors.put(id, actor);
     }
 
     @Override
-    public <R extends Message._Receive, S extends Message._Send, A extends FrontierActor<R, S>>
-    A registerFrontier(ActorId id, FrontierActor._Constructor<R, S, A> constructor) {
-        Consumer<ActorAction.SendMessage<S>> consumer = sendMsg -> {
+    public <R extends Message._Receive, A extends FrontierActor<R>>
+    A registerFrontier(ActorId id, FrontierActor._Constructor<R, A> constructor) {
+        Consumer<ActorAction.SendMessage<?,?>> consumer = sendMsg -> {
             mailbox.add(new Envelope(sendMsg.to(), (Message._Receive) sendMsg.message()));
             scheduleProcessing();
         };
@@ -95,7 +95,7 @@ public class VertxActorSystem implements ActorSystem {
                 }
 
                 @SuppressWarnings("unchecked")
-                var typedActor = (Actor<Message._Receive, Message._Send>) actor;
+                var typedActor = (Actor<Message._Receive>) actor;
                 var actions = typedActor.receive(entry.getValue());
 
                 for (var action : actions) {
@@ -107,9 +107,9 @@ public class VertxActorSystem implements ActorSystem {
 
     private void handleAction(ActorId sender, ActorAction action) {
         switch (action) {
-            case ActorAction.SendMessage<?> send ->
+            case ActorAction.SendMessage<?,?> send ->
                 mailbox.add(new Envelope(send.to(), (Message._Receive) send.message()));
-            case ActorAction.SpawnSubActor<?, ?, ?> spawn ->
+            case ActorAction.SpawnSubActor<?,?> spawn ->
                 throw new UnsupportedOperationException(
                     "SpawnSubActor not yet supported in VertxActorSystem");
             case ActorAction.SelfTerminate ignored ->

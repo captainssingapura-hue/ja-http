@@ -13,10 +13,10 @@ import hue.captains.singapura.tao.http.actor.frontier.FrontierActor;
 public interface ActorSystem {
 
     /** Allocate a new actor identity with a human-readable name. */
-    ActorId allocateId(String name);
+    <R extends Message._Receive, A extends Actor<R>> ActorId<R,A> allocateId(Actor._TypeRef<R,A> atr, String name);
 
     /** Register an actor under the given identity. */
-    void register(ActorId id, Actor<?, ?> actor);
+    void register(ActorId id, Actor<?> actor);
 
     /**
      * Register a frontier actor. The constructor receives a listener that bridges
@@ -24,8 +24,8 @@ public interface ActorSystem {
      *
      * @return the constructed frontier actor instance (for direct method calls from external code)
      */
-    <R extends Message._Receive, S extends Message._Send, A extends FrontierActor<R, S>>
-    A registerFrontier(ActorId id, FrontierActor._Constructor<R, S, A> constructor);
+    <R extends Message._Receive, A extends FrontierActor<R>>
+    A registerFrontier(ActorId id, FrontierActor._Constructor<R, A> constructor);
 
     /** Inject a message from outside the actor system (e.g. from a WebSocket handler). */
     void inject(ActorId target, Message._Receive message);

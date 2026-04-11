@@ -15,8 +15,9 @@ import java.util.Set;
  * Manages a subscriber set and delivers published payloads to all subscribers via {@link ActorAction.SendMessage}.
  * @param <M> the payload type this topic carries
  */
+@SuppressWarnings({"rawtypes", "unchecked"})
 public class TopicActor<M extends Message._Send>
-        implements Actor<TopicMessage<M>, TopicMessage<M>> {
+        implements Actor<TopicMessage<M>> {
 
     private final Set<ActorId> subscribers = new LinkedHashSet<>();
 
@@ -36,7 +37,7 @@ public class TopicActor<M extends Message._Send>
                     @SuppressWarnings("unchecked")
                     var payload = (M) pub.payload();
                     for (var ref : subscribers) {
-                        actions.add(new ActorAction.SendMessage<>(ref, payload));
+                        actions.add(new ActorAction.SendMessage(ref, (Message._Receive) payload));
                     }
                 }
             }

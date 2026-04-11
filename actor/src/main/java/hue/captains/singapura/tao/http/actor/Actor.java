@@ -2,14 +2,14 @@ package hue.captains.singapura.tao.http.actor;
 
 import java.util.List;
 
-public interface Actor<R extends Message._Receive, S extends Message._Send> {
+public interface Actor<R extends Message._Receive> {
 
     /**
      * We don't really care about how the actor works here.
      * Just the actor itself.
      */
 
-    interface _TypeRef<R extends Message._Receive, S extends Message._Send>{}
+    interface _TypeRef<R extends Message._Receive, A extends Actor<R>>{}
     /**
      * The actor will directly process message received.
      * Actor system need to ensure this method is always called sequentially. <br>

@@ -27,7 +27,8 @@ import java.util.Map;
  *             {"type": "game_over", ...}
  * </pre>
  */
-public class RpsGameActor implements Actor<Message._Receive, Message._Send> {
+@SuppressWarnings({"rawtypes", "unchecked"})
+public class RpsGameActor implements Actor<Message._Receive> {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final int WINS_NEEDED = 10;

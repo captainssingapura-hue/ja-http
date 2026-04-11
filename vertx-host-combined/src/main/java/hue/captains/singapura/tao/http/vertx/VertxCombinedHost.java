@@ -6,7 +6,6 @@ import hue.captains.singapura.tao.http.actor.ActorId;
 import hue.captains.singapura.tao.http.actor.ActorSystem;
 import hue.captains.singapura.tao.http.vertx.handler.GetActionHandler;
 import hue.captains.singapura.tao.http.vertx.handler.PostActionHandler;
-import hue.captains.singapura.tao.http.vertx.ws.VertxActorSystem;
 import hue.captains.singapura.tao.http.vertx.ws.WsLeadActor;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -14,6 +13,8 @@ import io.vertx.core.http.HttpServer;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
+
+import java.util.regex.Pattern;
 
 /**
  * A Vert.x host that serves both HTTP actions and WebSocket pub-sub on a single port.
@@ -38,26 +39,26 @@ import io.vertx.ext.web.handler.BodyHandler;
 public class VertxCombinedHost {
 
     private final Vertx vertx;
-    private final VertxActorSystem actorSystem;
+    private final ActorSystem actorSystem;
     private final ActionRegistry<RoutingContext> registry;
     private final ObjectMapper objectMapper;
     private final int port;
 
-    public VertxCombinedHost(ActionRegistry<RoutingContext> registry, int port) {
-        this(registry, port, new ObjectMapper());
+    public VertxCombinedHost(ActorSystem actorSystem, ActionRegistry<RoutingContext> registry, int port) {
+        this(actorSystem, registry, port, new ObjectMapper());
     }
 
-    public VertxCombinedHost(ActionRegistry<RoutingContext> registry, int port,
+    public VertxCombinedHost(ActorSystem actorSystem, ActionRegistry<RoutingContext> registry, int port,
                              ObjectMapper objectMapper) {
         this.vertx = Vertx.vertx();
-        this.actorSystem = new VertxActorSystem(vertx);
+        this.actorSystem = actorSystem;
         this.registry = registry;
         this.objectMapper = objectMapper;
         this.port = port;
     }
 
     /**
-     * Returns the actor system backed by this host's Vert.x event loop.
+     * Returns the actor system used by this host.
      * Use this to register topics, actors, and application logic before calling {@link #start}.
      */
     public ActorSystem actorSystem() {
@@ -78,17 +79,18 @@ public class VertxCombinedHost {
 
         // --- HTTP action routes ---
         for (var entry : registry.getActions().entrySet()) {
-            router.get(entry.getKey())
+            router.get().pathRegex(exactPath(entry.getKey()))
                     .handler(new GetActionHandler(entry.getValue(), objectMapper));
         }
 
         for (var entry : registry.postActions().entrySet()) {
-            router.post(entry.getKey())
+            router.post().pathRegex(exactPath(entry.getKey()))
                     .handler(new PostActionHandler(entry.getValue(), objectMapper));
         }
 
         // --- WebSocket pub-sub ---
-        var leadId = actorSystem.allocateId("ws-lead");
+        @SuppressWarnings({"rawtypes", "unchecked"})
+        var leadId = ActorId.allocate(null, "ws-lead");
         var leadActor = actorSystem.registerFrontier(leadId,
                 WsLeadActor.constructor(actorSystem, topicManagerId));
 
@@ -102,6 +104,10 @@ public class VertxCombinedHost {
                 })
                 .requestHandler(router)
                 .listen(port);
+    }
+
+    private static String exactPath(String path) {
+        return "^" + Pattern.quote(path) + "$";
     }
 
     public Future<Void> stop() {
