@@ -11,6 +11,11 @@
 
     <artifactId>rps-game-2</artifactId>
 
+    <properties>
+        <maven.deploy.skip>true</maven.deploy.skip>
+        <gpg.skip>true</gpg.skip>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>io.github.captainssingapura-hue.tong.ja-http</groupId>
