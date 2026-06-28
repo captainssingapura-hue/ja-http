@@ -39,3 +39,7 @@ build/
 /.idea/
 /.claude/
 /actor/cp.txt
+
+### Local dev TLS material (never commit) ###
+**/certs/*.jks
+**/certs/*.p12

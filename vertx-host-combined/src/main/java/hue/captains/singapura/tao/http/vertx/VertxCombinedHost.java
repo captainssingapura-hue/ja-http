@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import hue.captains.singapura.tao.http.action.ActionRegistry;
 import hue.captains.singapura.tao.http.actor.ActorId;
 import hue.captains.singapura.tao.http.actor.ActorSystem;
+import hue.captains.singapura.tao.http.config.HostConfig;
 import hue.captains.singapura.tao.http.vertx.handler.GetActionHandler;
 import hue.captains.singapura.tao.http.vertx.handler.PostActionHandler;
 import hue.captains.singapura.tao.http.vertx.ws.WsLeadActor;
@@ -42,19 +43,28 @@ public class VertxCombinedHost {
     private final ActorSystem actorSystem;
     private final ActionRegistry<RoutingContext> registry;
     private final ObjectMapper objectMapper;
-    private final int port;
+    private final HostConfig config;
 
     public VertxCombinedHost(ActorSystem actorSystem, ActionRegistry<RoutingContext> registry, int port) {
-        this(actorSystem, registry, port, new ObjectMapper());
+        this(actorSystem, registry, HostConfig.http(port));
     }
 
     public VertxCombinedHost(ActorSystem actorSystem, ActionRegistry<RoutingContext> registry, int port,
+                             ObjectMapper objectMapper) {
+        this(actorSystem, registry, HostConfig.http(port), objectMapper);
+    }
+
+    public VertxCombinedHost(ActorSystem actorSystem, ActionRegistry<RoutingContext> registry, HostConfig config) {
+        this(actorSystem, registry, config, new ObjectMapper());
+    }
+
+    public VertxCombinedHost(ActorSystem actorSystem, ActionRegistry<RoutingContext> registry, HostConfig config,
                              ObjectMapper objectMapper) {
         this.vertx = Vertx.vertx();
         this.actorSystem = actorSystem;
         this.registry = registry;
         this.objectMapper = objectMapper;
-        this.port = port;
+        this.config = config;
     }
 
     /**
@@ -94,7 +104,7 @@ public class VertxCombinedHost {
         var leadActor = actorSystem.registerFrontier(leadId,
                 WsLeadActor.constructor(actorSystem, topicManagerId));
 
-        return vertx.createHttpServer()
+        return vertx.createHttpServer(VertxTls.serverOptions(config))
                 .webSocketHandler(ws -> {
                     if (wsPath.equals(ws.path())) {
                         leadActor.onNewConnection(ws);
@@ -103,7 +113,7 @@ public class VertxCombinedHost {
                     }
                 })
                 .requestHandler(router)
-                .listen(port);
+                .listen(config.port(), config.host());
     }
 
     private static String exactPath(String path) {
