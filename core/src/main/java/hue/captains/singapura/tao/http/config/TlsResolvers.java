@@ -58,4 +58,17 @@ public final class TlsResolvers {
         }
         return resolver.resolve(spec);
     }
+
+    /**
+     * Adapts a spec into the deferred {@link ByteSourceProvider} a {@link TlsCredential}
+     * consumes — the bridge from the spec/resolver suite to a plain provider function.
+     */
+    public ByteSourceProvider byteSourceProvider(ByteSourceSpec spec) {
+        return () -> resolveByteSource(spec);
+    }
+
+    /** Adapts a spec into the deferred {@link PasswordProvider} a {@link TlsCredential} consumes. */
+    public PasswordProvider passwordProvider(PasswordSpec spec) {
+        return () -> resolvePassword(spec);
+    }
 }

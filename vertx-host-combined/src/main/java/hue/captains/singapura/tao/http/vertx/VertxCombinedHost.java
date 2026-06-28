@@ -5,7 +5,6 @@ import hue.captains.singapura.tao.http.action.ActionRegistry;
 import hue.captains.singapura.tao.http.actor.ActorId;
 import hue.captains.singapura.tao.http.actor.ActorSystem;
 import hue.captains.singapura.tao.http.config.HostConfig;
-import hue.captains.singapura.tao.http.config.TlsResolvers;
 import hue.captains.singapura.tao.http.vertx.handler.GetActionHandler;
 import hue.captains.singapura.tao.http.vertx.handler.PostActionHandler;
 import hue.captains.singapura.tao.http.vertx.ws.WsLeadActor;
@@ -45,7 +44,6 @@ public class VertxCombinedHost {
     private final ActionRegistry<RoutingContext> registry;
     private final ObjectMapper objectMapper;
     private final HostConfig config;
-    private final TlsResolvers resolvers;
 
     public VertxCombinedHost(ActorSystem actorSystem, ActionRegistry<RoutingContext> registry, int port) {
         this(actorSystem, registry, HostConfig.http(port));
@@ -53,21 +51,20 @@ public class VertxCombinedHost {
 
     public VertxCombinedHost(ActorSystem actorSystem, ActionRegistry<RoutingContext> registry, int port,
                              ObjectMapper objectMapper) {
-        this(actorSystem, registry, HostConfig.http(port), TlsResolvers.defaults(), objectMapper);
+        this(actorSystem, registry, HostConfig.http(port), objectMapper);
     }
 
     public VertxCombinedHost(ActorSystem actorSystem, ActionRegistry<RoutingContext> registry, HostConfig config) {
-        this(actorSystem, registry, config, TlsResolvers.defaults(), new ObjectMapper());
+        this(actorSystem, registry, config, new ObjectMapper());
     }
 
     public VertxCombinedHost(ActorSystem actorSystem, ActionRegistry<RoutingContext> registry, HostConfig config,
-                             TlsResolvers resolvers, ObjectMapper objectMapper) {
+                             ObjectMapper objectMapper) {
         this.vertx = Vertx.vertx();
         this.actorSystem = actorSystem;
         this.registry = registry;
         this.objectMapper = objectMapper;
         this.config = config;
-        this.resolvers = resolvers;
     }
 
     /**
@@ -107,7 +104,7 @@ public class VertxCombinedHost {
         var leadActor = actorSystem.registerFrontier(leadId,
                 WsLeadActor.constructor(actorSystem, topicManagerId));
 
-        return vertx.createHttpServer(VertxTls.serverOptions(config, resolvers))
+        return vertx.createHttpServer(VertxTls.serverOptions(config))
                 .webSocketHandler(ws -> {
                     if (wsPath.equals(ws.path())) {
                         leadActor.onNewConnection(ws);

@@ -3,7 +3,6 @@ package hue.captains.singapura.tao.http.vertx;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import hue.captains.singapura.tao.http.action.ActionRegistry;
 import hue.captains.singapura.tao.http.config.HostConfig;
-import hue.captains.singapura.tao.http.config.TlsResolvers;
 import hue.captains.singapura.tao.http.vertx.handler.GetActionHandler;
 import hue.captains.singapura.tao.http.vertx.handler.PostActionHandler;
 import io.vertx.core.Future;
@@ -19,26 +18,24 @@ public class VertxActionHost {
     private final ActionRegistry<RoutingContext> registry;
     private final ObjectMapper objectMapper;
     private final HostConfig config;
-    private final TlsResolvers resolvers;
 
     public VertxActionHost(ActionRegistry<RoutingContext> registry, int port) {
         this(registry, HostConfig.http(port));
     }
 
     public VertxActionHost(ActionRegistry<RoutingContext> registry, int port, ObjectMapper objectMapper) {
-        this(registry, HostConfig.http(port), TlsResolvers.defaults(), objectMapper);
+        this(registry, HostConfig.http(port), objectMapper);
     }
 
     public VertxActionHost(ActionRegistry<RoutingContext> registry, HostConfig config) {
-        this(registry, config, TlsResolvers.defaults(), new ObjectMapper());
+        this(registry, config, new ObjectMapper());
     }
 
     public VertxActionHost(ActionRegistry<RoutingContext> registry, HostConfig config,
-                           TlsResolvers resolvers, ObjectMapper objectMapper) {
+                           ObjectMapper objectMapper) {
         this.vertx = Vertx.vertx();
         this.registry = registry;
         this.config = config;
-        this.resolvers = resolvers;
         this.objectMapper = objectMapper;
     }
 
@@ -57,7 +54,7 @@ public class VertxActionHost {
                     .handler(new PostActionHandler(entry.getValue(), objectMapper));
         }
 
-        return vertx.createHttpServer(VertxTls.serverOptions(config, resolvers))
+        return vertx.createHttpServer(VertxTls.serverOptions(config))
                 .requestHandler(router)
                 .listen(config.port(), config.host());
     }

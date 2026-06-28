@@ -10,7 +10,12 @@ package hue.captains.singapura.tao.http.config;
  */
 public sealed interface TlsCredential permits TlsCredential.Jks {
 
-    /** A Java KeyStore (JKS) blob protected by a password. */
-    record Jks(ByteSourceSpec store, PasswordSpec password) implements TlsCredential {
+    /**
+     * A Java KeyStore (JKS), supplied as two provider functions: one yielding the keystore
+     * bytes, one yielding its password. The credential is self-sufficient — starting a server
+     * needs only these functions, no resolver registry. Build them however you like (a plain
+     * lambda, or via the {@link TlsResolvers} spec/resolver utility suite).
+     */
+    record Jks(ByteSourceProvider store, PasswordProvider password) implements TlsCredential {
     }
 }

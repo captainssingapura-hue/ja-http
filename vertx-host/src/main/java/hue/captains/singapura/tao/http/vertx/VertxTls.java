@@ -2,7 +2,6 @@ package hue.captains.singapura.tao.http.vertx;
 
 import hue.captains.singapura.tao.http.config.HostConfig;
 import hue.captains.singapura.tao.http.config.TlsCredential;
-import hue.captains.singapura.tao.http.config.TlsResolvers;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.net.JksOptions;
@@ -10,11 +9,12 @@ import io.vertx.core.net.KeyCertOptions;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.Arrays;
 
 /**
  * Maps the framework-agnostic {@link HostConfig} TLS settings onto Vert.x
- * {@link HttpServerOptions}, resolving every spec to in-memory bytes/secrets via the
- * supplied {@link TlsResolvers} so all material sources converge on one code path.
+ * {@link HttpServerOptions} by invoking the credential's provider functions. No resolver
+ * registry is involved — the credential is self-sufficient.
  */
 public final class VertxTls {
 
@@ -23,27 +23,34 @@ public final class VertxTls {
 
     /**
      * Returns server options for {@code config}. Plain HTTP yields default options;
-     * HTTPS yields SSL-enabled options with the resolved key/cert material installed.
+     * HTTPS yields SSL-enabled options with the key/cert material the credential supplies.
      */
-    public static HttpServerOptions serverOptions(HostConfig config, TlsResolvers resolvers) {
+    public static HttpServerOptions serverOptions(HostConfig config) {
         var options = new HttpServerOptions();
         if (!config.isTls()) {
             return options;
         }
         return options
                 .setSsl(true)
-                .setKeyCertOptions(keyCertOptions(config.tls().credential(), resolvers));
+                .setKeyCertOptions(keyCertOptions(config.tls().credential()));
     }
 
-    private static KeyCertOptions keyCertOptions(TlsCredential credential, TlsResolvers resolvers) {
+    private static KeyCertOptions keyCertOptions(TlsCredential credential) {
         try {
             return switch (credential) {
-                case TlsCredential.Jks jks -> new JksOptions()
-                        .setValue(Buffer.buffer(resolvers.resolveByteSource(jks.store())))
-                        .setPassword(new String(resolvers.resolvePassword(jks.password())));
+                case TlsCredential.Jks jks -> {
+                    char[] password = jks.password().get();
+                    try {
+                        yield new JksOptions()
+                                .setValue(Buffer.buffer(jks.store().get()))
+                                .setPassword(new String(password));
+                    } finally {
+                        Arrays.fill(password, '\0');
+                    }
+                }
             };
         } catch (IOException e) {
-            throw new UncheckedIOException("Failed to resolve TLS material", e);
+            throw new UncheckedIOException("Failed to obtain TLS material", e);
         }
     }
 }

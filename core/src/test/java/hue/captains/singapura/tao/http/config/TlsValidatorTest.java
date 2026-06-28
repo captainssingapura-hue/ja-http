@@ -1,6 +1,5 @@
 package hue.captains.singapura.tao.http.config;
 
-import hue.captains.singapura.tao.http.config.builtin.LiteralPassword;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -16,10 +15,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /** The two TLS stages: {@link TlsConfigResolver} (resolve) then {@link TlsValidator} (validate). */
 class TlsValidatorTest {
 
-    /** A downstream-defined byte source, proving the resolver registry is open. */
-    private record InMemoryBytes(byte[] bytes) implements ByteSourceSpec {
-    }
-
     private static byte[] keystoreBytes;
 
     @BeforeAll
@@ -30,27 +25,14 @@ class TlsValidatorTest {
         }
     }
 
-    private static TlsResolvers resolvers() {
-        return TlsResolvers.defaults().register(new ByteSourceResolver<InMemoryBytes>() {
-            @Override
-            public Class<InMemoryBytes> specType() {
-                return InMemoryBytes.class;
-            }
-
-            @Override
-            public byte[] resolve(InMemoryBytes spec) {
-                return spec.bytes();
-            }
-        });
+    private static TlsCredential.Jks credential() {
+        return new TlsCredential.Jks(() -> keystoreBytes, () -> "testpass".toCharArray());
     }
 
     @Test
     void resolveThenValidate_validKeystore_reportsEntry() throws Exception {
-        var credential = new TlsCredential.Jks(
-                new InMemoryBytes(keystoreBytes), LiteralPassword.of("testpass"));
-
-        // Stage A — resolve specs to concrete material.
-        ResolvedTlsCredential resolved = new TlsConfigResolver().resolve(credential, resolvers());
+        // Stage A — invoke the credential's providers to get concrete material.
+        ResolvedTlsCredential resolved = new TlsConfigResolver().resolve(credential());
 
         // Stage B — validate the resolved material.
         TlsValidationReport report = new TlsValidator().validate(resolved);
@@ -86,9 +68,7 @@ class TlsValidatorTest {
 
     @Test
     void validAt_isFalseAfterExpiry() throws Exception {
-        var resolved = new TlsConfigResolver().resolve(
-                new TlsCredential.Jks(new InMemoryBytes(keystoreBytes), LiteralPassword.of("testpass")),
-                resolvers());
+        var resolved = new TlsConfigResolver().resolve(credential());
         var report = new TlsValidator().validate(resolved);
 
         var farFuture = Instant.now().plusSeconds(20L * 365 * 24 * 3600); // 20 years out

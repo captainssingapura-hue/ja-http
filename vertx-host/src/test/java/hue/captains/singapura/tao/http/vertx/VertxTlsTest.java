@@ -1,14 +1,13 @@
 package hue.captains.singapura.tao.http.vertx;
 
-import hue.captains.singapura.tao.http.config.ByteSourceResolver;
-import hue.captains.singapura.tao.http.config.ByteSourceSpec;
 import hue.captains.singapura.tao.http.config.HostConfig;
 import hue.captains.singapura.tao.http.config.TlsConfig;
 import hue.captains.singapura.tao.http.config.TlsCredential;
-import hue.captains.singapura.tao.http.config.TlsResolvers;
-import hue.captains.singapura.tao.http.config.builtin.LiteralPassword;
 import io.vertx.core.net.JksOptions;
 import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -20,39 +19,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class VertxTlsTest {
 
-    /** A downstream-defined byte source, proving the open extensibility of the sum. */
-    private record InMemoryBytes(byte[] bytes) implements ByteSourceSpec {
-    }
-
-    private static TlsResolvers resolversFor(InMemoryBytes ignored) {
-        return TlsResolvers.defaults().register(new ByteSourceResolver<InMemoryBytes>() {
-            @Override
-            public Class<InMemoryBytes> specType() {
-                return InMemoryBytes.class;
-            }
-
-            @Override
-            public byte[] resolve(InMemoryBytes spec) {
-                return spec.bytes();
-            }
-        });
-    }
-
     @Test
     void plainHttpProducesNonSslOptions() {
-        var opts = VertxTls.serverOptions(HostConfig.http(8080), TlsResolvers.defaults());
+        var opts = VertxTls.serverOptions(HostConfig.http(8080));
 
         assertFalse(opts.isSsl());
         assertNull(opts.getKeyCertOptions());
     }
 
     @Test
-    void httpsResolvesJksMaterialIntoSslOptions() {
+    void httpsBuildsJksOptionsFromProviders() {
         var ksBytes = "fake-keystore-bytes".getBytes();
-        var store = new InMemoryBytes(ksBytes);
-        var tls = new TlsConfig(new TlsCredential.Jks(store, LiteralPassword.of("changeit")));
+        var tls = new TlsConfig(new TlsCredential.Jks(() -> ksBytes, () -> "changeit".toCharArray()));
 
-        var opts = VertxTls.serverOptions(HostConfig.https(8443, tls), resolversFor(store));
+        var opts = VertxTls.serverOptions(HostConfig.https(8443, tls));
 
         assertTrue(opts.isSsl());
         var jks = assertInstanceOf(JksOptions.class, opts.getKeyCertOptions());
@@ -61,14 +41,15 @@ class VertxTlsTest {
     }
 
     @Test
-    void missingResolverForSpecFailsFast() {
-        // defaults() knows nothing about InMemoryBytes
+    void providerIoFailureSurfacesAsUnchecked() {
         var tls = new TlsConfig(new TlsCredential.Jks(
-                new InMemoryBytes(new byte[0]), LiteralPassword.of("x")));
+                () -> {
+                    throw new IOException("boom");
+                },
+                () -> "x".toCharArray()));
 
-        var ex = assertThrows(IllegalStateException.class,
-                () -> VertxTls.serverOptions(HostConfig.https(8443, tls), TlsResolvers.defaults()));
-        assertTrue(ex.getMessage().contains("InMemoryBytes"),
-                "message should name the unresolved spec, was: " + ex.getMessage());
+        var ex = assertThrows(UncheckedIOException.class,
+                () -> VertxTls.serverOptions(HostConfig.https(8443, tls)));
+        assertTrue(ex.getMessage().contains("TLS material"));
     }
 }
