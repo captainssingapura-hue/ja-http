@@ -9,31 +9,6 @@
     <version>LOCAL-SNAPSHOT</version>
     <packaging>pom</packaging>
 
-    <name>ja-http</name>
-    <description>Lightweight Java HTTP actor framework</description>
-    <url>https://github.com/captainssingapura-hue/ja-http</url>
-
-    <licenses>
-        <license>
-            <name>MIT License</name>
-            <url>https://opensource.org/licenses/MIT</url>
-        </license>
-    </licenses>
-
-    <developers>
-        <developer>
-            <id>captainssingapura-hue</id>
-            <name>captainssingapura-hue</name>
-            <email>2645887333+captainssingapura-hue@users.noreply.github.com</email>
-        </developer>
-    </developers>
-
-    <scm>
-        <connection>scm:git:git://github.com/captainssingapura-hue/ja-http.git</connection>
-        <developerConnection>scm:git:ssh://github.com/captainssingapura-hue/ja-http.git</developerConnection>
-        <url>https://github.com/captainssingapura-hue/ja-http</url>
-    </scm>
-
     <modules>
         <module>core</module>
         <module>actor</module>
@@ -62,8 +37,6 @@
         <jetty.version>12.0.16</jetty.version>
         <junit.version>5.11.3</junit.version>
         <ontology.version>0.0.1</ontology.version>
-        <!-- Default: do not skip publishing. Demo modules override this to true. -->
-        <maven.deploy.skip>false</maven.deploy.skip>
     </properties>
 
     <dependencyManagement>
@@ -76,113 +49,5 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <version>3.3.1</version>
-                <executions>
-                    <execution>
-                        <id>attach-sources</id>
-                        <goals>
-                            <goal>jar-no-fork</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.11.2</version>
-                <executions>
-                    <execution>
-                        <id>attach-javadocs</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-gpg-plugin</artifactId>
-                <version>3.2.7</version>
-                <configuration>
-                    <keyname>F2A1350C5DAF500E1469BAAFAEBD28CF8BD72B91</keyname>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>sign-artifacts</id>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>sign</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.sonatype.central</groupId>
-                <artifactId>central-publishing-maven-plugin</artifactId>
-                <version>0.7.0</version>
-                <extensions>true</extensions>
-                <configuration>
-                    <publishingServerId>central</publishingServerId>
-                    <skipPublishing>${maven.deploy.skip}</skipPublishing>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
-
-    <profiles>
-        <profile>
-            <id>local-run</id>
-            <activation>
-                <!-- Optional: Make this profile active by default unless another profile is specified -->
-                <activeByDefault>true</activeByDefault>
-            </activation>
-            <properties>
-                <env.config>local</env.config>
-                <maven.test.skip>false</maven.test.skip>
-            </properties>
-            <!-- Add specific dependencies or plugins for local runs here -->
-        </profile>
-        <profile>
-            <id>deploy</id>
-            <properties>
-                <env.config>prod</env.config>
-                <maven.test.skip>true</maven.test.skip>
-            </properties>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-gpg-plugin</artifactId>
-                        <version>3.2.7</version>
-                        <executions>
-                            <execution>
-                                <id>sign-artifacts</id>
-                                <phase>verify</phase>
-                                <goals>
-                                    <goal>sign</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.sonatype.central</groupId>
-                        <artifactId>central-publishing-maven-plugin</artifactId>
-                        <version>0.7.0</version>
-                        <extensions>true</extensions>
-                        <configuration>
-                            <publishingServerId>central</publishingServerId>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-            <!-- Add production-specific dependencies or repositories here -->
-        </profile>
-    </profiles>
 
 </project>
