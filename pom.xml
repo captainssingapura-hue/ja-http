@@ -6,7 +6,7 @@
 
     <groupId>io.github.captainssingapura-hue.tong.ja-http</groupId>
     <artifactId>ja-http</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>LOCAL-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>ja-http</name>
@@ -61,6 +61,7 @@
         <jackson.version>2.17.2</jackson.version>
         <jetty.version>12.0.16</jetty.version>
         <junit.version>5.11.3</junit.version>
+        <ontology.version>0.0.1</ontology.version>
         <!-- Default: do not skip publishing. Demo modules override this to true. -->
         <maven.deploy.skip>false</maven.deploy.skip>
     </properties>

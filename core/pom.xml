@@ -6,7 +6,7 @@
     <parent>
         <groupId>io.github.captainssingapura-hue.tong.ja-http</groupId>
         <artifactId>ja-http</artifactId>
-        <version>1.0-SNAPSHOT</version>
+        <version>LOCAL-SNAPSHOT</version>
     </parent>
 
     <artifactId>core</artifactId>
@@ -18,6 +18,12 @@
     </properties>
 
     <dependencies>
+        <!-- jOntology: the TLS resolve/validate facility implements StatelessFunctionalObject. -->
+        <dependency>
+            <groupId>io.github.captainssingapura-hue.lang.ontology</groupId>
+            <artifactId>core</artifactId>
+            <version>${ontology.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
